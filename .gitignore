@@ -1,0 +1,9 @@
+.Rproj.user
+.Rhistory
+R/*.RData
+.RData
+tests
+code
+run_tests.R
+CTRP2results
+scratch_work.R

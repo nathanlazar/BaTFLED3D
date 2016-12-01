@@ -1,0 +1,35 @@
+
+# Pipeline to run BaTFLED3D 
+
+# 1) Orgainize input data
+
+# 2) Run BaTFLED3D on full data set
+
+# 2 a) Run BaTFLED on data split by tissue type
+
+# 3) Summarize the results from the run
+
+Rscript summarize_runs.R <Run prefix without .0.out, etc.> \
+  <run prefix>.summary
+
+# 4) Reformat the summary data to be inported into excel sheet
+
+Rscript format_summary.R <run prefix>_summary.Rdata \
+  <run_prefix>_summary.txt
+
+## If running multiple rounds of predition subsetting variables ##
+# 5) Summarize the influence of predictors 
+
+Rscript summarize_pred_influence.R <run prefix>
+
+# 6) Subset the predictors using intersection & union methods
+
+Rscript subset_preds_fit_mixture.R <run prefix>_preds.Rdata \
+  <mode 1 matrix> <mode 2 matrix> <mode 3 matrix> \
+  <number of folds that a predictor is chosen in> \
+  <out directory>
+
+# Example: subset_preds_fit_mixture.R '
+#  CTRP2results/run_225280/run_225280_preds.Rdata
+#  ../CTRP2/CTRP2_cl_train.Rdata ../CTRP2/CTRP2_dr_train.Rdata
+#  none 3 ../CTRP2/test

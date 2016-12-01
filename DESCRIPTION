@@ -1,0 +1,54 @@
+Package: BaTFLED3D
+Title: Bayesian Tensor Factorization Linked to External Data
+Version: 0.0.1
+Authors@R: person("Nathan", "Lazar", email = "nathan.lazar@gmail.com", role = c("aut", "cre"))
+Description: Predicts responses in a three-dimensional array (tensor) using
+    preidictor matrices for each dimension.
+Depends:
+    R (>= 3.2.2)
+License: GNU GPLv3
+LazyData: true
+RoxygenNote: 5.0.1
+Collate:
+    'CP_model.R'
+    'Tucker_model.R'
+    'Viewing.R'
+    'exp_var.R'
+    'get_data_params.R'
+    'get_influence.R'
+    'get_model_params.R'
+    'im_2_mat.R'
+    'im_mat.R'
+    'input_data.R'
+    'lower_bnd_Tucker.R'
+    'lower_bnd_CP.R'
+    'mk_model.R'
+    'mk_toy.R'
+    'mult_3d.R'
+    'normalize_resp.R'
+    'plot_preds.R'
+    'plot_roc.R'
+    'plot_test_RMSE.R'
+    'plot_test_cor.R'
+    'plot_test_exp_var.R'
+    'remove_preds.R'
+    'rmse.R'
+    'rot.R'
+    'safe_log.R'
+    'safe_prod.R'
+    'show_mat.R'
+    'test.R'
+    'test_CP.R'
+    'test_Tucker.R'
+    'test_results.R'
+    'train.R'
+    'train_CP.R'
+    'train_Tucker.R'
+    'update_core_Tucker.R'
+    'update_mode1_Tucker.R'
+    'update_mode2_Tucker.R'
+    'update_mode3_Tucker.R'
+    'update_mode1_CP.R'
+    'update_mode2_CP.R'
+    'update_mode3_CP.R'
+
