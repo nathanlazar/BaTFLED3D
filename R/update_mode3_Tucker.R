@@ -85,13 +85,13 @@ update_mode3_Tucker <- function(m, d, params) {
   
   if(H3.intercept) {
     m$mode3.H.var[,-1] <- foreach(delta=iapply(d$delta, 3), .combine='rbind') %:%
-      foreach(core.mean=iapply(m$core.mean[,,-1], 3), 
-              core.var=iapply(m$core.var[,,-1], 3), .combine='c') %do% {
+      foreach(core.mean=iapply(m$core.mean[,,-1,drop=F], 3), 
+              core.var=iapply(m$core.var[,,-1,drop=F], 3), .combine='c') %do% {
         sum1 <- matrix(0, I, J); sum2 <- matrix(0, I, J)
         sum3 <- matrix(0, I, J); sum4 <- matrix(0, I, J)
         for(r1 in 1:core1) for(r2 in 1:core2) {
           sum1 <- sum1 + core.mean[r1,r2] * outer(mode1.H.mean[,r1], mode2.H.mean[,r2]) *
-            (mode1.H.mean[,-r1,drop=F] %*% core.mean[-r1,-r2]) %*% t(mode2.H.mean[,-r2,drop=F])
+            (mode1.H.mean[,-r1,drop=F] %*% core.mean[-r1,-r2,drop=F]) %*% t(mode2.H.mean[,-r2,drop=F])
           sum2 <- sum2 + core.mean[r1,r2] *
             outer((mode1.H.mean[,r1]^2 + mode1.H.var[,r1]), mode2.H.mean[,r2]) *
             matrix(mode2.H.mean[,-r2,drop=F] %*% core.mean[r1,-r2], I, J, byrow=T)

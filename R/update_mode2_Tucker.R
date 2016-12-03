@@ -84,8 +84,8 @@ update_mode2_Tucker <- function(m, d, params) {
   
   if(H2.intercept) {
     m$mode2.H.var[,-1] <- foreach(delta=iapply(d$delta, 2), .combine='rbind') %:%
-      foreach(core.mean=iapply(m$core.mean[,-1,], 2), 
-              core.var=iapply(m$core.var[,-1,], 2), .combine='c') %do% {
+      foreach(core.mean=iapply(m$core.mean[,-1,,drop=F], 2), 
+              core.var=iapply(m$core.var[,-1,,drop=F], 2), .combine='c') %do% {
         sum1 <- matrix(0, I, K); sum2 <- matrix(0, I, K)
         sum3 <- matrix(0, I, K); sum4 <- matrix(0, I, K)
         for(r1 in 1:core1) for(r3 in 1:core3) {
