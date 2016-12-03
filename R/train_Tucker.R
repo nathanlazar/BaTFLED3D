@@ -29,9 +29,9 @@ train_Tucker <- function(d, m, new.iter=1, params) {
   d <- d$clone()
   
   # list of functions for updating (allows update order to be modified)
-  up.funs <- list(update_mode1_Tucker, 
-                  update_mode2_Tucker, 
-                  update_mode3_Tucker)
+  up.funs <- list(update_mode1 = update_mode1_Tucker, 
+                  update_mode2 = update_mode2_Tucker, 
+                  update_mode3 = update_mode3_Tucker)
   
   # If remove.lmt != 0 rows of the A (projection) matrices and corresponding parameters
   # are removed if the expected value of the row variance (1/lambda) falls below remove.lmt.

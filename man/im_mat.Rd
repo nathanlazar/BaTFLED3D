@@ -5,7 +5,7 @@
 \title{Plot a heatmap of a matrix in red and blue}
 \usage{
 im_mat(x, high = "red", xaxt = "n", yaxt = "n", sort = F, scale = F,
-  ...)
+  ballance = F, zlim = NA, ...)
 }
 \arguments{
 \item{x}{matrix}
@@ -21,6 +21,8 @@ be sorted in decreasing order of their means}
 
 \item{scale}{logical indicating whether the matrix should be z scaled to have 
 columns with norm zero and standard deviation one.}
+
+\item{ballance}{logical indicating whether to expand the range so it stays centered at zero}
 
 \item{...}{other graphical parameters passed to image}
 }
