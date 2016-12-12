@@ -43,7 +43,6 @@ pkgTest('dplyr')        # General data frame manipulation
 pkgTest('ggplot2')      # Pretty plotting
 # Packages for registering parallel backend (depends on platform)
 if(.Platform$OS.type == "windows") {pkgTest('doParallel')} else pkgTest('doMC')
-install.packages('BaTFLED3D_0.0.1.tar.gz', repos = NULL, type="source")  # Note: must be run from the directory containing the tar.gz file
 library(BaTFLED3D)
 
 # Set up backend for parallel execution
@@ -162,7 +161,7 @@ if(model.params$decomp=='Tucker')
 We're now ready to train the BaTFLED model. If `params$plot=TRUE` the predictions and some of the learned matrices will be displayed during training. You can adjust which A and H matrices are displayed by changing `params$show.mode`. The observed response values for the 'warm' data are set to zero, so they appear along a vertical line in the first plot. You may want to adjust the number of `cores` depending on how many processors you have on your machine and the number of iterations run `reps`.
 
 ```{r train model, message=F, warning=F, results='hide', fig.show='hide'}
-reps <- 100
+reps <- 50
 
 # Data frame to store RMSEs & explained variances for test data while training 
 test.results <- numeric(0)
