@@ -20,6 +20,10 @@
 #' update_core_Tucker(m=toy.model, d=train.data, params=model.params)
 
 update_core_Tucker <- function(m, d, params) {
+
+  # Number of core updates to perform per iteration. Make this a parameter
+  n.core.up <- 100
+  
   # Make all param variables available locally
   for(i in 1:length(params)) {
     assign(names(params)[i], params[i][[1]])
@@ -59,7 +63,8 @@ update_core_Tucker <- function(m, d, params) {
   # R1.rand <- sample(R1, R1); R2.rand <- sample(R2, R2); R3.rand <- sample(R3, R3)
   # for(r3 in R3.rand) for(r2 in R2.rand) for(r1 in R1.rand) {
   # for(r3 in 1:R3) for(r2 in 1:R2) for(r1 in 1:R1) {
-  for(n in 1:nrow(eg.mix)) {
+  # for(n in 1:nrow(eg.mix)) {
+  for(n in 1:n.core.up) {
     r1 <- eg.mix[n,1]; r2 <- eg.mix[n,2]; r3 <- eg.mix[n,3]
     sum0 <- m$mode1.H.mean[,r1] %o% m$mode2.H.mean[,r2] %o% m$mode3.H.mean[,r3]
 
