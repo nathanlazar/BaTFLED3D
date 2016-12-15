@@ -175,6 +175,8 @@ We're now ready to train the BaTFLED model. If `params$plot=TRUE` the prediction
 ```{r train model, message=F, warning=F, results='hide', fig.show='hide'}
 reps <- 100
 
+model.params$core.updates <- 25
+
 # Data frame to store RMSEs & explained variances for test data while training 
 test.results <- numeric(0)
 

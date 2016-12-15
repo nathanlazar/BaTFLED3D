@@ -32,6 +32,7 @@
 #' \item{R1}{Numeric. Number of latent factors used for mode 1 in a Tucker decomposition. (4)}
 #' \item{R2}{Numeric. Number of latent factors used for mode 2 in a Tucker decomposition. (4)}
 #' \item{R3}{Numeric. Number of latent factors used for mode 3 in a Tucker decomposition. (3)}
+#' \item{core.updates}{Numeric. Number of core elements to update each round for stochastic training. (all)}
 #' \item{m1.alpha}{Numeric. Prior for the 'shape' parameter of the gamma distribution on the 
 #' precision values in the mode 1 projection (A) matrix. Set this to a small value (ex. 1e-10)
 #' to encourage sparsity in mode 1 predictors. (1e-10)}
@@ -143,6 +144,7 @@ get_model_params <- function(args) {
                  core.1D.alpha=1, core.1D.beta=1,
                  core.2D.alpha=1, core.2D.beta=1,
                  core.3D.alpha=1, core.3D.beta=1,
+                 core.updates=Inf,
                  m1.sigma2=.01, m2.sigma2=.01, m3.sigma2=1,
                  sigma2=1, 
                  remove.start=Inf, 
@@ -163,7 +165,7 @@ get_model_params <- function(args) {
     for(n in 1:length(value)) params[name][[1]][n] <- value[n]
     params[name][[1]] <- params[name][[1]][1:length(value)]
   }
-  
+
   # Drop parameters if not needed
   if(params$decomp=='CP') {
     params[c('R1','R2','R3')] <- NULL
