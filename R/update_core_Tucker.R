@@ -22,7 +22,7 @@
 update_core_Tucker <- function(m, d, params) {
 
   # Number of core updates to perform per iteration. Make this a parameter
-  n.core.up <- 100
+  n.core.up <- 10 # 
   
   # Make all param variables available locally
   for(i in 1:length(params)) {
