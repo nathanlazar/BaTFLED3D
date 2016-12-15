@@ -19,7 +19,7 @@
 mult_3d <- function(core, x, y, z, names=T) {
   # Multiply three matrices through a core tensor
   # Requires rTensor library
-  resp <- as.tensor(core) %>% ttm(x, 1) %>% ttm(y, 2) %>% ttm(z, 3)
+  resp <-  rTensor::ttm(rTensor::ttm(rTensor::ttm(rTensor::as.tensor(core), x, 1), y, 2), z, 3)
 
   if(names) dimnames(resp@data) <- list(rownames(x), rownames(y), rownames(z))
 

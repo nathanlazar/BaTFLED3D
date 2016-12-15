@@ -27,30 +27,14 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r install packages, message=F, warning=F, results='hide'}
-pkgTest <- function(x) { # load packages and install if needed
-  if (!require(x,character.only = TRUE)) {
-    install.packages(x,dep=TRUE)
-    if(!require(x,character.only = TRUE)) stop("Package not found")
-  }
-}
-
-pkgTest('knitr')
-pkgTest('foreach')      # For parallel processing in loops
-pkgTest('R6')           # For making memory efficent R6 objects
-pkgTest('iterators')    # Making iterator objects for efficient parallelization
-pkgTest('rTensor')      # Needed for multiplying matrices into tensors (could be removed)
-pkgTest('dplyr')        # General data frame manipulation
-pkgTest('ggplot2')      # Pretty plotting
-# Packages for registering parallel backend (depends on platform)
-if(.Platform$OS.type == "windows") {pkgTest('doParallel')} else pkgTest('doMC')
 library(BaTFLED3D)
 
 # Set up backend for parallel execution
 cores <- 4
 if(.Platform$OS.type == "windows") {
-  clust <- makeCluster(cores)
-  registerDoParallel(clust)
-} else registerDoMC(cores)
+  clust <- parallel::makeCluster(cores)
+  doParallel::registerDoParallel(clust)
+} else doMC::registerDoMC(cores)
 ```
 
 ## Generating a simulated dataset
@@ -71,7 +55,7 @@ args <- list('decomp=Tucker',             # Should be either CP or Tucker factor
              'm1.true=8',                 # Number of predictors affecting output 
              'm2.true=10', 
              'm3.true=0',
-             'R1=4', 'R2=5', 'R3=4',      # Core dimension
+             'R1=4', 'R2=4', 'R3=4',      # Core dimension
              'core.spar=0.1',             # Amount of sparsity in the core [0-1], 1=no sparsity
              'noise.sd=0.2'               # Amount of Gaussian noise added to responses
 )
@@ -132,7 +116,7 @@ args <- list('decomp=Tucker', 'row.share=T',
              'A1.intercept=T', 'A2.intercept=T', 'A3.intercept=F',
              'H1.intercept=T', 'H2.intercept=T', 'H3.intercept=T',
              'plot=T', 'verbose=F',
-             'R1=4', 'R2=5', 'R3=4',
+             'R1=4', 'R2=4', 'R3=4',
              paste0('sigma2=', var(toy$resp)),
              'm1.alpha=1e-10', 'm2.alpha=1e-10', 'm3.alpha=1',
              'm1.beta=1e10', 'm2.beta=1e10', 'm3.beta=1',
@@ -161,7 +145,7 @@ if(model.params$decomp=='Tucker')
 We're now ready to train the BaTFLED model. If `params$plot=TRUE` the predictions and some of the learned matrices will be displayed during training. You can adjust which A and H matrices are displayed by changing `params$show.mode`. The observed response values for the 'warm' data are set to zero, so they appear along a vertical line in the first plot. You may want to adjust the number of `cores` depending on how many processors you have on your machine and the number of iterations run `reps`.
 
 ```{r train model, message=F, warning=F, results='hide', fig.show='hide'}
-reps <- 50
+reps <- 25
 
 # Data frame to store RMSEs & explained variances for test data while training 
 test.results <- numeric(0)
@@ -184,7 +168,7 @@ for(i in 1:reps) {
 }
 
 # Stop cluster (if using parallel package)
-if(.Platform$OS.type == "windows") stopCluster(clust)
+if(.Platform$OS.type == "windows") parallel::stopCluster(clust)
 ```
 
 ## Exploring the resulting model

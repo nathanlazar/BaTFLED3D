@@ -6,7 +6,7 @@ Description: Predicts responses in a three-dimensional array (tensor) using
     preidictor matrices for each dimension.
 Depends:
     R (>= 3.2.2)
-License: GNU GPLv3
+License: non-standard license see github.com/nathanlazar/BaTFLED3D
 LazyData: true
 RoxygenNote: 5.0.1
 Collate:
@@ -51,4 +51,14 @@ Collate:
     'update_mode1_CP.R'
     'update_mode2_CP.R'
     'update_mode3_CP.R'
-
+Imports: 
+    knitr,
+    foreach,
+    R6,
+    iterators,
+    rTensor,
+    dplyr,
+    ggplot2
+Suggests:
+    doMC,
+    doParallel

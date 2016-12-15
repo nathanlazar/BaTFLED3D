@@ -22,7 +22,7 @@ plot_test_exp_var <- function(test.results, ylim=NA, mean=F, main=NA) {
   types <- sub('1 & 2 & 3', '1,2 & 3', types)
 
   n <- length(types)
-  colrs <- brewer.pal(n, "Set1")
+  colrs <- RColorBrewer::brewer.pal(n, "Set1")
   
   if(mean) {
     legend <- c(types, 'predicting the mean')

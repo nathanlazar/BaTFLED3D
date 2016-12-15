@@ -19,40 +19,20 @@ The algorithm learns distributions on values in the projection matrices and late
 
 This document will walk through the use of BaTFLED on a small simulated dataset.
 
-First we check for installation of necessary packages, install them if necessary and load them.
-
 ```{r setup, include=F}
 # Setting global options
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r install packages, message=F, warning=F, results='hide'}
-pkgTest <- function(x) { # load packages and install if needed
-  if (!require(x,character.only = TRUE)) {
-    install.packages(x,dep=TRUE)
-    if(!require(x,character.only = TRUE)) stop("Package not found")
-  }
-}
-
-pkgTest('knitr')
-pkgTest('foreach')      # For parallel processing in loops
-pkgTest('R6')           # For making memory efficent R6 objects
-pkgTest('iterators')    # Making iterator objects for efficient parallelization
-pkgTest('rTensor')      # Needed for multiplying matrices into tensors (could be removed)
-pkgTest('dplyr')        # General data frame manipulation
-pkgTest('ggplot2')      # Pretty plotting
-pkgTest('RColorBrewer') # Colors for plotting
-# Packages for registering parallel backend (depends on platform)
-if(.Platform$OS.type == "windows") {pkgTest('doParallel')} else pkgTest('doMC')
-# install.packages('BaTFLED3D_0.0.1.tar.gz', repos = NULL, type="source")  # Note: must be run from the directory containing the tar.gz file
 library(BaTFLED3D)
 
 # Set up backend for parallel execution
 cores <- 4
 if(.Platform$OS.type == "windows") {
-  clust <- makeCluster(cores)
-  registerDoParallel(clust)
-} else registerDoMC(cores)
+  clust <- parallel::makeCluster(cores)
+  doParallel::registerDoParallel(clust)
+} else doMC::registerDoMC(cores)
 ```
 
 ## Generating a simulated dataset
@@ -175,7 +155,7 @@ for(i in 1:reps) {
 }
 
 # Stop cluster (if using parallel package)
-if(.Platform$OS.type == "windows") stopCluster(clust)
+if(.Platform$OS.type == "windows") parallel::stopCluster(clust)
 ```
 
 ## Exploring the resulting model
