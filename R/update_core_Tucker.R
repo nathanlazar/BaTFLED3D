@@ -20,15 +20,14 @@
 #' update_core_Tucker(m=toy.model, d=train.data, params=model.params)
 
 update_core_Tucker <- function(m, d, params) {
-
-  # Number of core updates to perform per iteration. Make this a parameter
-  n.core.up <- 10 # 
-  
   # Make all param variables available locally
   for(i in 1:length(params)) {
     assign(names(params)[i], params[i][[1]])
   }
-
+  
+  # Number of core updates to perform per iteration.
+  if(core.updates == Inf) core.updates <- prod(dim(m$core.mean))
+  
   if(verbose) print("Updating core tensor")
   
   I <- dim(d$resp)[1]; J <- dim(d$resp)[2]; K <- dim(d$resp)[3]
@@ -43,29 +42,24 @@ update_core_Tucker <- function(m, d, params) {
   exp.m2.H.sq <- m$mode2.H.mean^2 + m$mode2.H.var
   exp.m3.H.sq <- m$mode3.H.mean^2 + m$mode3.H.var
   
+  # Update coefficients of constant terms first
+  eg.mix <- expand.grid(1:R1, 1:R2, 1:R3)
+  # eg.mix <- eg.mix[order(apply(eg.mix, 1, function(x) sum(x!=1))), ]
+  eg.mix <- eg.mix[sample(nrow(eg.mix), core.updates),]
+  
   # TODO: speed up this loop (it can be parallelized)
   # May need to restrict it to the subset of core elements that are to be updated each time randomly
-  for(r1 in 1:R1) for(r2 in 1:R2) for(r3 in 1:R3) {
+  for(n in 1:core.updates) {
+    r1 <- eg.mix[n,1]; r2 <- eg.mix[n,2]; r3 <- eg.mix[n,3]
     m$core.var[r1,r2,r3] <- 1/((1/m$sigma2) *
        sum(d$delta * (exp.m1.H.sq[,r1] %o% exp.m2.H.sq[,r2] %o% exp.m3.H.sq[,r3])) +
        m$core.lambda.shape[r1,r2,r3] * m$core.lambda.scale[r1,r2,r3])
   }
   
-  # Update elements of core.mean in a totally random order since they depend on each other
-  # Make a grid of indices and mix it up
-  # eg.mix <- expand.grid(1:R1, 1:R2, 1:R3)[sample(R1*R2*R3),]
-  # eg.mix <- expand.grid(R1:1, R2:1, R3:1)
-  eg.mix <- expand.grid(1:R1, 1:R2, 1:R3)
-  
-  # Update coefficients of constant terms first
-  eg.mix <- eg.mix[order(apply(eg.mix, 1, function(x) sum(x!=1))), ]
-  
   # Update core mean
-  # R1.rand <- sample(R1, R1); R2.rand <- sample(R2, R2); R3.rand <- sample(R3, R3)
-  # for(r3 in R3.rand) for(r2 in R2.rand) for(r1 in R1.rand) {
   # for(r3 in 1:R3) for(r2 in 1:R2) for(r1 in 1:R1) {
   # for(n in 1:nrow(eg.mix)) {
-  for(n in sample(nrow(eg.mix), n.core.up)) {
+  for(n in 1:core.updates) {
     r1 <- eg.mix[n,1]; r2 <- eg.mix[n,2]; r3 <- eg.mix[n,3]
     sum0 <- m$mode1.H.mean[,r1] %o% m$mode2.H.mean[,r2] %o% m$mode3.H.mean[,r3]
 
