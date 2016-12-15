@@ -44,6 +44,7 @@ update_core_Tucker <- function(m, d, params) {
   exp.m3.H.sq <- m$mode3.H.mean^2 + m$mode3.H.var
   
   # TODO: speed up this loop (it can be parallelized)
+  # May need to restrict it to the subset of core elements that are to be updated each time randomly
   for(r1 in 1:R1) for(r2 in 1:R2) for(r3 in 1:R3) {
     m$core.var[r1,r2,r3] <- 1/((1/m$sigma2) *
        sum(d$delta * (exp.m1.H.sq[,r1] %o% exp.m2.H.sq[,r2] %o% exp.m3.H.sq[,r3])) +
@@ -64,13 +65,13 @@ update_core_Tucker <- function(m, d, params) {
   # for(r3 in R3.rand) for(r2 in R2.rand) for(r1 in R1.rand) {
   # for(r3 in 1:R3) for(r2 in 1:R2) for(r1 in 1:R1) {
   # for(n in 1:nrow(eg.mix)) {
-  for(n in 1:n.core.up) {
+  for(n in sample(nrow(eg.mix), n.core.up)) {
     r1 <- eg.mix[n,1]; r2 <- eg.mix[n,2]; r3 <- eg.mix[n,3]
     sum0 <- m$mode1.H.mean[,r1] %o% m$mode2.H.mean[,r2] %o% m$mode3.H.mean[,r3]
 
     # Sum when all r's are not equal
     big_sum <- (m$mode1.H.mean[,r1] %o% m$mode2.H.mean[,r2] %o% m$mode3.H.mean[,r3]) *
-      ttl(as.tensor(m$core.mean[-r1,-r2,-r3,drop=F]),
+      rTensor::ttl(rTensor::as.tensor(m$core.mean[-r1,-r2,-r3,drop=F]),
           list(m$mode1.H.mean[,-r1,drop=F],
                m$mode2.H.mean[,-r2,drop=F],
                m$mode3.H.mean[,-r3,drop=F]), c(1,2,3))@data
@@ -78,17 +79,17 @@ update_core_Tucker <- function(m, d, params) {
     # Sums when two r's are not equal
     big_sum <- big_sum + (exp.m1.H.sq[,r1] %o%
                             ((m$mode2.H.mean[,r2] %o% m$mode3.H.mean[,r3]) *
-                               ttl(as.tensor(m$core.mean[r1,-r2,-r3,drop=F]),
+                               rTensor::ttl(rTensor::as.tensor(m$core.mean[r1,-r2,-r3,drop=F]),
                                    list(m$mode2.H.mean[,-r2,drop=F], m$mode3.H.mean[,-r3,drop=F]),
                                    c(2,3))@data[1,,]))
     # Rotate this one with aperm
     big_sum <- big_sum + aperm((exp.m2.H.sq[,r2] %o%
                                   ((m$mode1.H.mean[,r1] %o% m$mode3.H.mean[,r3]) *
-                                     (ttl(as.tensor(m$core.mean[-r1,r2,-r3,drop=F]),
+                                     (rTensor::ttl(rTensor::as.tensor(m$core.mean[-r1,r2,-r3,drop=F]),
                                           list(m$mode1.H.mean[,-r1,drop=F], m$mode3.H.mean[,-r3,drop=F]),
                                           c(1,3))@data[,1,]))), c(2,1,3))
     big_sum <- big_sum + ((m$mode1.H.mean[,r1] %o% m$mode2.H.mean[,r2]) *
-                            ttl(as.tensor(m$core.mean[-r1,-r2,r3,drop=F]),
+                            rTensor::ttl(rTensor::as.tensor(m$core.mean[-r1,-r2,r3,drop=F]),
                                 list(m$mode1.H.mean[,-r1,drop=F], m$mode2.H.mean[,-r2,drop=F]),
                                 c(1,2))@data[,,1]) %o% exp.m3.H.sq[,r3]
     

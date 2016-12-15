@@ -29,7 +29,7 @@ plot_test_cor <- function(test.results, ylim=NA, mean=F, main=NA, method='pearso
   types <- sub('1 & 2 & 3', '1,2 & 3', types)
   
   n <- length(types)
-  colrs <- brewer.pal(n, "Set1")
+  colrs <- RColorBrewer::brewer.pal(n, "Set1")
     
   if(mean) {
     legend <- c(types, 'predicting the mean')

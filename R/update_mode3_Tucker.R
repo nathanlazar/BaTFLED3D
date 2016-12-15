@@ -20,6 +20,8 @@
 #' update_mode3_Tucker(m=toy.model, d=train.data, params=model.params)
 
 update_mode3_Tucker <- function(m, d, params) {
+  library(foreach) # namespace must be loaded for %do% and %dopar%
+  
   # Make all param variables available locally
   for(i in 1:length(params)) {
     assign(names(params)[i], params[i][[1]])
@@ -84,9 +86,9 @@ update_mode3_Tucker <- function(m, d, params) {
   m3.sigma2 <- m$m3.sigma2
   
   if(H3.intercept) {
-    m$mode3.H.var[,-1] <- foreach(delta=iapply(d$delta, 3), .combine='rbind') %:%
-      foreach(core.mean=iapply(m$core.mean[,,-1,drop=F], 3), 
-              core.var=iapply(m$core.var[,,-1,drop=F], 3), .combine='c') %do% {
+    m$mode3.H.var[,-1] <- foreach(delta=iterators::iapply(d$delta, 3), .combine='rbind') %:%
+      foreach(core.mean=iterators::iapply(m$core.mean[,,-1,drop=F], 3), 
+              core.var=iterators::iapply(m$core.var[,,-1,drop=F], 3), .combine='c') %do% {
         sum1 <- matrix(0, I, J); sum2 <- matrix(0, I, J)
         sum3 <- matrix(0, I, J); sum4 <- matrix(0, I, J)
         for(r1 in 1:core1) for(r2 in 1:core2) {
@@ -105,9 +107,9 @@ update_mode3_Tucker <- function(m, d, params) {
         1/((1/sigma2) * sum(delta * (sum1 + sum2 + sum3 + sum4)) + (1/m3.sigma2))
       }
   } else {
-    m$mode3.H.var[,] <- foreach(delta=iapply(d$delta, 3), .combine='rbind') %:%
-      foreach(core.mean=iapply(m$core.mean[,,], 3), 
-              core.var=iapply(m$core.var[,,], 3), .combine='c') %do% {
+    m$mode3.H.var[,] <- foreach(delta=iterators::iapply(d$delta, 3), .combine='rbind') %:%
+      foreach(core.mean=iterators::iapply(m$core.mean[,,], 3), 
+              core.var=iterators::iapply(m$core.var[,,], 3), .combine='c') %do% {
         sum1 <- matrix(0, I, J); sum2 <- matrix(0, I, J)
         sum3 <- matrix(0, I, J); sum4 <- matrix(0, I, J)
         for(r1 in 1:core1) for(r2 in 1:core2) {
@@ -135,7 +137,7 @@ update_mode3_Tucker <- function(m, d, params) {
   } else x_times_a <- safe_prod(d$mode3.X, m$mode3.A.mean)
   if(H3.intercept) x_times_a <- cbind(1, x_times_a)
 
-  sum0 <- ttl(as.tensor(m$core.mean), list(m$mode1.H.mean, m$mode2.H.mean), c(1,2))@data
+  sum0 <- rTensor::ttl(rTensor::as.tensor(m$core.mean), list(m$mode1.H.mean, m$mode2.H.mean), c(1,2))@data
   
   # Update the mean parameters (m$mode3.H.mean)
   core.mean <- m$core.mean
@@ -143,10 +145,10 @@ update_mode3_Tucker <- function(m, d, params) {
   dm <- dimnames(m$mode3.H.mean)
   # Loop is over samples (K)
   if(H3.intercept) R3.rng <- 2:core3 else R3.rng <- 1:core3 # Don't update the constant column
-  m$mode3.H.mean <- foreach(mode3.H.mean = iter(m$mode3.H.mean, by='row'), 
-                            mode3.H.var = iter(m$mode3.H.var, by='row'),
-                            resp = iapply(d$resp, 3),
-                            x_t_a = iter(x_times_a, by='row'), .combine='rbind') %do% {
+  m$mode3.H.mean <- foreach(mode3.H.mean = iterators::iter(m$mode3.H.mean, by='row'), 
+                            mode3.H.var = iterators::iter(m$mode3.H.var, by='row'),
+                            resp = iterators::iapply(d$resp, 3),
+                            x_t_a = iterators::iter(x_times_a, by='row'), .combine='rbind') %do% {
     for(r3 in R3.rng) { 
       big_sum <- matrix(0,I,J)
       for(r3. in (1:core3)[-r3]) {
