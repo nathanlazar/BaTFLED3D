@@ -27,32 +27,14 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r install packages, message=F, warning=F, results='hide'}
-pkgTest <- function(x) { # load packages and install if needed
-  if (!require(x,character.only = TRUE)) {
-    install.packages(x,dep=TRUE)
-    if(!require(x,character.only = TRUE)) stop("Package not found")
-  }
-}
-
-pkgTest('knitr')
-pkgTest('foreach')      # For parallel processing in loops
-pkgTest('R6')           # For making memory efficent R6 objects
-pkgTest('iterators')    # Making iterator objects for efficient parallelization
-pkgTest('rTensor')      # Needed for multiplying matrices into tensors (could be removed)
-pkgTest('dplyr')        # General data frame manipulation
-pkgTest('RColorBrewer') # Colors for plotting
-# Packages for registering parallel backend (depends on platform)
-if(.Platform$OS.type == "windows") {pkgTest('doParallel')} else pkgTest('doMC')
-# Build the package: must be run from the directory containing the tar.gz file
-# install.packages('BaTFLED3D_0.0.1.tar.gz', repos = NULL, type="source")  
 library(BaTFLED3D)
 
 # Set up backend for parallel execution
 cores <- 4
 if(.Platform$OS.type == "windows") {
-  clust <- makeCluster(cores)
-  registerDoParallel(clust)
-} else registerDoMC(cores)
+  clust <- parallel::makeCluster(cores)
+  doParallel::registerDoParallel(clust)
+} else doMC::registerDoMC(cores)
 ```
 
 ## Generating a simulated dataset
@@ -193,6 +175,8 @@ We're now ready to train the BaTFLED model. If `params$plot=TRUE` the prediction
 ```{r train model, message=F, warning=F, results='hide', fig.show='hide'}
 reps <- 100
 
+model.params$core.updates <- 25
+
 # Data frame to store RMSEs & explained variances for test data while training 
 test.results <- numeric(0)
 
@@ -214,7 +198,7 @@ for(i in 1:reps) {
 }
 
 # Stop cluster (if using parallel package)
-if(.Platform$OS.type == "windows") stopCluster(clust)
+if(.Platform$OS.type == "windows") parallel::stopCluster(clust)
 ```
 
 ## Exploring the resulting model

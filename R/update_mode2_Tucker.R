@@ -20,6 +20,8 @@
 #' update_mode2_Tucker(m=toy.model, d=train.data, params=model.params)
 
 update_mode2_Tucker <- function(m, d, params) {
+  library(foreach) # namespace must be loaded for %do% and %dopar%
+
   # Make all param variables available locally
   for(i in 1:length(params)) {
     assign(names(params)[i], params[i][[1]])
@@ -83,9 +85,9 @@ update_mode2_Tucker <- function(m, d, params) {
   m2.sigma2 <- m$m2.sigma2
   
   if(H2.intercept) {
-    m$mode2.H.var[,-1] <- foreach(delta=iapply(d$delta, 2), .combine='rbind') %:%
-      foreach(core.mean=iapply(m$core.mean[,-1,,drop=F], 2), 
-              core.var=iapply(m$core.var[,-1,,drop=F], 2), .combine='c') %do% {
+    m$mode2.H.var[,-1] <- foreach(delta=iterators::iapply(d$delta, 2), .combine='rbind') %:%
+      foreach(core.mean=iterators::iapply(m$core.mean[,-1,,drop=F], 2), 
+              core.var=iterators::iapply(m$core.var[,-1,,drop=F], 2), .combine='c') %do% {
         sum1 <- matrix(0, I, K); sum2 <- matrix(0, I, K)
         sum3 <- matrix(0, I, K); sum4 <- matrix(0, I, K)
         for(r1 in 1:core1) for(r3 in 1:core3) {
@@ -104,9 +106,9 @@ update_mode2_Tucker <- function(m, d, params) {
         1/((1/sigma2) * sum(delta * (sum1 + sum2 + sum3 + sum4)) + (1/m2.sigma2))
       }
   } else {
-    m$mode2.H.var[,] <- foreach(delta=iapply(d$delta, 2), .combine='rbind') %:%
-      foreach(core.mean=iapply(m$core.mean[,,], 2), 
-              core.var=iapply(m$core.var[,,], 2), .combine='c') %do% {
+    m$mode2.H.var[,] <- foreach(delta=iterators::iapply(d$delta, 2), .combine='rbind') %:%
+      foreach(core.mean=iterators::iapply(m$core.mean[,,], 2), 
+              core.var=iterators::iapply(m$core.var[,,], 2), .combine='c') %do% {
         sum1 <- matrix(0, I, K); sum2 <- matrix(0, I, K)
         sum3 <- matrix(0, I, K); sum4 <- matrix(0, I, K)
         for(r1 in 1:core1) for(r3 in 1:core3) {
@@ -131,7 +133,7 @@ update_mode2_Tucker <- function(m, d, params) {
     x_times_a <- matrix(0, J, R2)
   } else x_times_a <- safe_prod(d$mode2.X, m$mode2.A.mean)
   if(H2.intercept) x_times_a <- cbind(1, x_times_a)
-  sum0 <- ttl(as.tensor(m$core.mean), list(m$mode1.H.mean, m$mode3.H.mean), c(1,3))@data
+  sum0 <- rTensor::ttl(rTensor::as.tensor(m$core.mean), list(m$mode1.H.mean, m$mode3.H.mean), c(1,3))@data
   
   # Update the mean parameters (m$mode2.H.mean)
   core.mean <- m$core.mean
@@ -139,10 +141,10 @@ update_mode2_Tucker <- function(m, d, params) {
   dm <- dimnames(m$mode2.H.mean)
   # Loop is over samples (J)
   if(H2.intercept) R2.rng <- 2:core2 else R2.rng <- 1:core2 # Don't update the constant column
-  m$mode2.H.mean <- foreach(mode2.H.mean = iter(m$mode2.H.mean, by='row'), 
-                            mode2.H.var = iter(m$mode2.H.var, by='row'),
-                            resp = iapply(d$resp, 2),
-                            x_t_a = iter(x_times_a, by='row'), .combine='rbind') %do% {
+  m$mode2.H.mean <- foreach(mode2.H.mean = iterators::iter(m$mode2.H.mean, by='row'), 
+                            mode2.H.var = iterators::iter(m$mode2.H.var, by='row'),
+                            resp = iterators::iapply(d$resp, 2),
+                            x_t_a = iterators::iter(x_times_a, by='row'), .combine='rbind') %do% {
     for(r2 in R2.rng) { 
       big_sum <- matrix(0,I,K)
       for(r2. in (1:core2)[-r2]) {
