@@ -74,7 +74,14 @@ update_mode3_Tucker <- function(m, d, params) {
       }
     }
   }
-  
+
+  # Scale the columns of the A matrix
+  A.col.sd <- mean(c(apply(m$mode1.A.mean, 2, sd), 
+                     apply(m$mode2.A.mean, 2, sd),
+                     apply(m$mode3.A.mean, 2, sd)))
+  print(A.col.sd)
+  m$mode3.A.mean <- scale(m$mode3.A.mean, scale=rep(A.col.sd, R3), center=F)
+
   if(verbose) print("Updating latent (H) matrix for mode 3")
   # Update the variance first.
   # Copy data so all of m and d aren't sent out to worker nodes
