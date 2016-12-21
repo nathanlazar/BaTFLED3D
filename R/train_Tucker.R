@@ -94,10 +94,16 @@ train_Tucker <- function(d, m, new.iter=1, params) {
     # This speeds calculations and may give better predictions
     remove_preds(m, d, params)
 
+    # Sample 'batch' input data to update
+    # TODO: add to params?
+    batch.samps <- list(sample(dim(m$resp)[[1]], batch[1]),
+                        sample(dim(m$resp)[[2]], batch[2]), 
+                        sample(dim(m$resp)[[3]], batch[3]))
+
     # Choose which mode to update 
     #up.mode <- sample(3,3)
-    update_core_Tucker(m, d, params)
-    for(mode in update.order) up.funs[[mode]](m, d, params)
+    for(mode in update.order) up.funs[[mode]](m, d, params, batch.samps)
+    update_core_Tucker(m, d, params, batch.samps)
 
     # update_mode3_Tucker(m, d, params)
     # update_mode2_Tucker(m, d, params)

@@ -90,6 +90,8 @@
 #' for these modes while training. (c(1,2,3))}
 #' \item{update.order}{Numeric vector. Update the modes in this order (c(3,2,1))}
 #' }
+#' \item{batch}{Numeric vector. The number of samples to be used in stochastic batch updates for 
+#' each mode. (c(Inf,Inf,Inf))}
 #' @return list of parameters used by \code{train} function. Values in \code{args} that
 #' are not model parameters will be excluded and a warning displayed.
 #' @examples
@@ -102,7 +104,7 @@
 #'           'core.3D.alpha=1e-10', 'core.3D.beta=1e10',
 #'           'parallel=T', 'cores=5', 'lower.bnd=T',
 #'           'update.order=c(3,2,1)', 'show.mode=c(1,2,3)',
-#'           'wrong=1')
+#'           'batch=c(5,5,5)', 'wrong=1')
 #' model.params <- get_model_params(args)
 #' @seealso \code{\link{CP_model}} \code{\link{Tucker_model}}
 
@@ -154,7 +156,8 @@ get_model_params <- function(args) {
                  m3.remove.lmt=0,
                  plot=T, early.stop=NA,
                  update.order=c(3,2,1),
-                 show.mode=c(1,2,3))
+                 show.mode=c(1,2,3),
+                 batch=c(Inf, Inf, Inf))
 
   accepted <- names(params)
   

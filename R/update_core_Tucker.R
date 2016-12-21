@@ -19,7 +19,7 @@
 #'
 #' update_core_Tucker(m=toy.model, d=train.data, params=model.params)
 
-update_core_Tucker <- function(m, d, params) {
+update_core_Tucker <- function(m, d, params, batch.samps) {
   # Make all param variables available locally
   for(i in 1:length(params)) {
     assign(names(params)[i], params[i][[1]])

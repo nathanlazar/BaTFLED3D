@@ -92,7 +92,9 @@ this value. (0)}
 \item{show.mode}{Numeric vector. Display images of the projection and latent matrices
 for these modes while training. (c(1,2,3))}
 \item{update.order}{Numeric vector. Update the modes in this order (c(3,2,1))}
-}}
+}
+\item{batch}{Numeric vector. The number of samples to be used in stochastic batch updates for 
+each mode. (c(Inf,Inf,Inf))}}
 }
 \value{
 list of parameters used by \code{train} function. Values in \code{args} that
@@ -112,7 +114,7 @@ args <- c('decomp=Tucker', 'row.share=F',
           'core.3D.alpha=1e-10', 'core.3D.beta=1e10',
           'parallel=T', 'cores=5', 'lower.bnd=T',
           'update.order=c(3,2,1)', 'show.mode=c(1,2,3)',
-          'wrong=1')
+          'batch=c(5,5,5)', 'wrong=1')
 model.params <- get_model_params(args)
 }
 \seealso{
