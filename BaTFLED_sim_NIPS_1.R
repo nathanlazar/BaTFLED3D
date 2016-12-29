@@ -19,32 +19,17 @@ if (!file.exists(out.dir)){
 ## Example usage
 
 # Setting global options
-.libPaths("/home/users/lazar/R/x86_64-redhat-linux-gnu-library/3.2")
+# .libPaths("/home/users/lazar/R/x86_64-redhat-linux-gnu-library/3.2")
 
-pkgTest <- function(x) { # load packages and install if needed
-  if (!require(x,character.only = TRUE)) {
-    install.packages(x,dep=TRUE)
-    if(!require(x,character.only = TRUE)) stop("Package not found")
-  }
-}
-
-pkgTest('foreach')      # For parallel processing in loops
-pkgTest('R6')           # For making memory efficent R6 objects
-pkgTest('iterators')    # Making iterator objects for efficient parallelization
-pkgTest('rTensor')      # Needed for multiplying matrices into tensors (could be removed)
-pkgTest('dplyr')        # General data frame manipulation
-pkgTest('RColorBrewer') # Colors for plotting
-# Packages for registering parallel backend (depends on platform)
-ifelse(.Platform$OS.type == "windows", library(doParallel), library(doMC))
 # Build the package: must be run from the directory containing the tar.gz file
-# install.packages('BaTFLED3D_0.0.1.tar.gz', repos = NULL, type="source")  
+# install.packages('BaTFLED3D_0.1.0.tar.gz', repos = NULL, type="source")  
 library(BaTFLED3D)
 
 # Set up backend for parallel execution
 cores <- 16
 if(.Platform$OS.type == "windows") {
-  clust <- makeCluster(cores)
-  registerDoParallel(clust)
+  clust <- parallel::makeCluster(cores)
+  doParallel::registerDoParallel(clust)
 } else registerDoMC(cores)
 
 ## Generating a simulated dataset

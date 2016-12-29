@@ -124,10 +124,10 @@ test_results <- function(m, d, test.results=numeric(0), verbose=T,
     res$warm.RMSE.clip[m$iter] <- rmse(warm.resp, warm.preds.clip)
     res$warm.exp.var[m$iter] <- exp_var(warm.resp, warm.preds)
     res$warm.exp.var.clip[m$iter] <- exp_var(warm.resp, warm.preds.clip)
-    res$warm.p.cor[m$iter] <- cor(warm.resp, warm.preds, use='complete.obs')
-    res$warm.p.cor.clip[m$iter] <- cor(warm.resp, warm.preds.clip, use='complete.obs')
-    res$warm.s.cor[m$iter] <- cor(warm.resp, warm.preds, use='complete.obs', method='spearman')
-    res$warm.s.cor.clip[m$iter] <- cor(warm.resp, warm.preds.clip, use='complete.obs', method='spearman')
+    res$warm.p.cor[m$iter] <- tryCatch(cor(warm.resp, warm.preds, use='complete.obs'), error=function(e) NA)
+    res$warm.p.cor.clip[m$iter] <- tryCatch(cor(warm.resp, warm.preds.clip, use='complete.obs'), error=function(e) NA)
+    res$warm.s.cor[m$iter] <- tryCatch(cor(warm.resp, warm.preds, use='complete.obs', method='spearman'), error=function(e) NA)
+    res$warm.s.cor.clip[m$iter] <- tryCatch(cor(warm.resp, warm.preds.clip, use='complete.obs', method='spearman'), error=function(e) NA)
     if(verbose) {
       print(sprintf('Warm RMSE: %.2f, clipped: %.2f', 
                     res$warm.RMSE[m$iter], res$warm.RMSE.clip[m$iter]))
@@ -140,7 +140,7 @@ test_results <- function(m, d, test.results=numeric(0), verbose=T,
     }
   }
   
-  if(length(test.m1)) {
+  if(length(test.m1)) if(sum(!is.na(test.m1$resp))) {
     m1.cold.preds <- test(d=test.m1, m=m)
     res$m1.RMSE[m$iter] <- rmse(test.m1$resp, m1.cold.preds)
     m1.cold.preds.clip <- m1.cold.preds
@@ -149,10 +149,10 @@ test_results <- function(m, d, test.results=numeric(0), verbose=T,
     res$m1.RMSE.clip[m$iter] <- rmse(test.m1$resp, m1.cold.preds.clip)
     res$m1.exp.var[m$iter] <- exp_var(test.m1$resp, m1.cold.preds)
     res$m1.exp.var.clip[m$iter] <- exp_var(test.m1$resp, m1.cold.preds.clip)
-    res$m1.p.cor[m$iter] <- cor(test.m1$resp, m1.cold.preds, use='complete.obs')
-    res$m1.p.cor.clip[m$iter] <- cor(test.m1$resp, m1.cold.preds.clip, use='complete.obs')
-    res$m1.s.cor[m$iter] <- cor(test.m1$resp, m1.cold.preds, use='complete.obs', method='spearman')
-    res$m1.s.cor.clip[m$iter] <- cor(test.m1$resp, m1.cold.preds.clip, use='complete.obs', method='spearman')
+    res$m1.p.cor[m$iter] <- tryCatch(cor(test.m1$resp, m1.cold.preds, use='complete.obs'), error=function(e) NA)
+    res$m1.p.cor.clip[m$iter] <- tryCatch(cor(test.m1$resp, m1.cold.preds.clip, use='complete.obs'), error=function(e) NA)
+    res$m1.s.cor[m$iter] <- tryCatch(cor(test.m1$resp, m1.cold.preds, use='complete.obs', method='spearman'), error=function(e) NA)
+    res$m1.s.cor.clip[m$iter] <- tryCatch(cor(test.m1$resp, m1.cold.preds.clip, use='complete.obs', method='spearman'), error=function(e) NA)
     if(verbose) {
       print(sprintf('Mode 1 cold RMSE: %.2f, clipped: %.2f', 
                     res$m1.RMSE[m$iter], res$m1.RMSE.clip[m$iter]))
@@ -165,7 +165,7 @@ test_results <- function(m, d, test.results=numeric(0), verbose=T,
     }
   }
   
-  if(length(test.m2)) {
+  if(length(test.m2))  if(sum(!is.na(test.m2$resp))) {
     m2.cold.preds <- test(d=test.m2, m=m)
     res$m2.RMSE[m$iter] <- rmse(test.m2$resp, m2.cold.preds)
     m2.cold.preds.clip <- m2.cold.preds
@@ -174,10 +174,10 @@ test_results <- function(m, d, test.results=numeric(0), verbose=T,
     res$m2.RMSE.clip[m$iter] <- rmse(test.m2$resp, m2.cold.preds.clip)
     res$m2.exp.var[m$iter] <- exp_var(test.m2$resp, m2.cold.preds)
     res$m2.exp.var.clip[m$iter] <- exp_var(test.m2$resp, m2.cold.preds.clip)
-    res$m2.p.cor[m$iter] <- cor(test.m2$resp, m2.cold.preds, use='complete.obs')
-    res$m2.p.cor.clip[m$iter] <- cor(test.m2$resp, m2.cold.preds.clip, use='complete.obs')
-    res$m2.s.cor[m$iter] <- cor(test.m2$resp, m2.cold.preds, use='complete.obs', method='spearman')
-    res$m2.s.cor.clip[m$iter] <- cor(test.m2$resp, m2.cold.preds.clip, use='complete.obs', method='spearman')
+    res$m2.p.cor[m$iter] <- tryCatch(cor(test.m2$resp, m2.cold.preds, use='complete.obs'), error=function(e) NA)
+    res$m2.p.cor.clip[m$iter] <- tryCatch(cor(test.m2$resp, m2.cold.preds.clip, use='complete.obs'), error=function(e) NA)
+    res$m2.s.cor[m$iter] <- tryCatch(cor(test.m2$resp, m2.cold.preds, use='complete.obs', method='spearman'), error=function(e) NA)
+    res$m2.s.cor.clip[m$iter] <- tryCatch(cor(test.m2$resp, m2.cold.preds.clip, use='complete.obs', method='spearman'), error=function(e) NA)
     if(verbose) {
       print(sprintf('Mode 2 cold RMSE: %.2f, clipped: %.2f', 
                     res$m2.RMSE[m$iter], res$m2.RMSE.clip[m$iter]))
@@ -190,7 +190,7 @@ test_results <- function(m, d, test.results=numeric(0), verbose=T,
     }
   }
 
-  if(length(test.m3)) {
+  if(length(test.m3)) if(sum(!is.na(test.m3$resp))) {
     m3.cold.preds <- test(d=test.m3, m=m)
     res$m3.RMSE[m$iter] <- rmse(test.m3$resp, m3.cold.preds)
     m3.cold.preds.clip <- m3.cold.preds
@@ -199,10 +199,10 @@ test_results <- function(m, d, test.results=numeric(0), verbose=T,
     res$m3.RMSE.clip[m$iter] <- rmse(test.m3$resp, m3.cold.preds.clip)
     res$m3.exp.var[m$iter] <- exp_var(test.m3$resp, m3.cold.preds)
     res$m3.exp.var.clip[m$iter] <- exp_var(test.m3$resp, m3.cold.preds.clip)
-    res$m3.p.cor[m$iter] <- cor(test.m3$resp, m3.cold.preds, use='complete.obs')
-    res$m3.p.cor.clip[m$iter] <- cor(test.m3$resp, m3.cold.preds.clip, use='complete.obs')
-    res$m3.s.cor[m$iter] <- cor(test.m3$resp, m3.cold.preds, use='complete.obs', method='spearman')
-    res$m3.s.cor.clip[m$iter] <- cor(test.m3$resp, m3.cold.preds.clip, use='complete.obs', method='spearman')
+    res$m3.p.cor[m$iter] <- tryCatch(cor(test.m3$resp, m3.cold.preds, use='complete.obs'), error=function(e) NA)
+    res$m3.p.cor.clip[m$iter] <- tryCatch(cor(test.m3$resp, m3.cold.preds.clip, use='complete.obs'), error=function(e) NA)
+    res$m3.s.cor[m$iter] <- tryCatch(cor(test.m3$resp, m3.cold.preds, use='complete.obs', method='spearman'), error=function(e) NA)
+    res$m3.s.cor.clip[m$iter] <- tryCatch(cor(test.m3$resp, m3.cold.preds.clip, use='complete.obs', method='spearman'), error=function(e) NA)
     if(verbose) {
       print(sprintf('Mode 3 cold RMSE: %.2f, clipped: %.2f', 
                     res$m3.RMSE[m$iter], res$m3.RMSE.clip[m$iter]))
@@ -215,7 +215,7 @@ test_results <- function(m, d, test.results=numeric(0), verbose=T,
     }
   }
 
-  if(length(test.m1m2)) {
+  if(length(test.m1m2)) if(sum(!is.na(test.m1m2$resp))) {
     m1m2.cold.preds <- test(d=test.m1m2, m=m)
     res$m1m2.RMSE[m$iter] <- rmse(test.m1m2$resp, m1m2.cold.preds)
     m1m2.cold.preds.clip <- m1m2.cold.preds
@@ -224,10 +224,10 @@ test_results <- function(m, d, test.results=numeric(0), verbose=T,
     res$m1m2.RMSE.clip[m$iter] <- rmse(test.m1m2$resp, m1m2.cold.preds.clip)
     res$m1m2.exp.var[m$iter] <- exp_var(test.m1m2$resp, m1m2.cold.preds)
     res$m1m2.exp.var.clip[m$iter] <- exp_var(test.m1m2$resp, m1m2.cold.preds.clip)
-    res$m1m2.p.cor[m$iter] <- cor(test.m1m2$resp, m1m2.cold.preds, use='complete.obs')
-    res$m1m2.p.cor.clip[m$iter] <- cor(test.m1m2$resp, m1m2.cold.preds.clip, use='complete.obs')
-    res$m1m2.s.cor[m$iter] <- cor(test.m1m2$resp, m1m2.cold.preds, use='complete.obs', method='spearman')
-    res$m1m2.s.cor.clip[m$iter] <- cor(test.m1m2$resp, m1m2.cold.preds.clip, use='complete.obs', method='spearman')
+    res$m1m2.p.cor[m$iter] <- tryCatch(cor(test.m1m2$resp, m1m2.cold.preds, use='complete.obs'), error=function(e) NA)
+    res$m1m2.p.cor.clip[m$iter] <- tryCatch(cor(test.m1m2$resp, m1m2.cold.preds.clip, use='complete.obs'), error=function(e) NA)
+    res$m1m2.s.cor[m$iter] <- tryCatch(cor(test.m1m2$resp, m1m2.cold.preds, use='complete.obs', method='spearman'), error=function(e) NA)
+    res$m1m2.s.cor.clip[m$iter] <- tryCatch(cor(test.m1m2$resp, m1m2.cold.preds.clip, use='complete.obs', method='spearman'), error=function(e) NA)
     if(verbose) {
       print(sprintf('Mode 1 & 2 cold RMSE: %.2f, clipped: %.2f', 
                     res$m1m2.RMSE[m$iter], res$m1m2.RMSE.clip[m$iter]))
@@ -240,7 +240,7 @@ test_results <- function(m, d, test.results=numeric(0), verbose=T,
     }
   }
   
-  if(length(test.m1m3)) {
+  if(length(test.m1m3)) if(sum(!is.na(test.m1m3$resp))) {
     m1m3.cold.preds <- test(d=test.m1m3, m=m)
     res$m1m3.RMSE[m$iter] <- rmse(test.m1m3$resp, m1m3.cold.preds)
     m1m3.cold.preds.clip <- m1m3.cold.preds
@@ -249,10 +249,10 @@ test_results <- function(m, d, test.results=numeric(0), verbose=T,
     res$m1m3.RMSE.clip[m$iter] <- rmse(test.m1m3$resp, m1m3.cold.preds.clip)
     res$m1m3.exp.var[m$iter] <- exp_var(test.m1m3$resp, m1m3.cold.preds)
     res$m1m3.exp.var.clip[m$iter] <- exp_var(test.m1m3$resp, m1m3.cold.preds.clip)
-    res$m1m3.p.cor[m$iter] <- cor(test.m1m3$resp, m1m3.cold.preds, use='complete.obs')
-    res$m1m3.p.cor.clip[m$iter] <- cor(test.m1m3$resp, m1m3.cold.preds.clip, use='complete.obs')
-    res$m1m3.s.cor[m$iter] <- cor(test.m1m3$resp, m1m3.cold.preds, use='complete.obs', method='spearman')
-    res$m1m3.s.cor.clip[m$iter] <- cor(test.m1m3$resp, m1m3.cold.preds.clip, use='complete.obs', method='spearman')
+    res$m1m3.p.cor[m$iter] <- tryCatch(cor(test.m1m3$resp, m1m3.cold.preds, use='complete.obs'), error=function(e) NA)
+    res$m1m3.p.cor.clip[m$iter] <- tryCatch(cor(test.m1m3$resp, m1m3.cold.preds.clip, use='complete.obs'), error=function(e) NA)
+    res$m1m3.s.cor[m$iter] <- tryCatch(cor(test.m1m3$resp, m1m3.cold.preds, use='complete.obs', method='spearman'), error=function(e) NA)
+    res$m1m3.s.cor.clip[m$iter] <- tryCatch(cor(test.m1m3$resp, m1m3.cold.preds.clip, use='complete.obs', method='spearman'), error=function(e) NA)
     if(verbose) {
       print(sprintf('Mode 1 & 3 cold RMSE: %.2f, clipped: %.2f', 
                     res$m1m3.RMSE[m$iter], res$m1m3.RMSE.clip[m$iter]))
@@ -265,7 +265,7 @@ test_results <- function(m, d, test.results=numeric(0), verbose=T,
     }
   }
   
-  if(length(test.m2m3)) {
+  if(length(test.m2m3)) if(sum(!is.na(test.m2m3$resp))) {
     m2m3.cold.preds <- test(d=test.m2m3, m=m)
     res$m2m3.RMSE[m$iter] <- rmse(test.m2m3$resp, m2m3.cold.preds)
     m2m3.cold.preds.clip <- m2m3.cold.preds
@@ -274,10 +274,10 @@ test_results <- function(m, d, test.results=numeric(0), verbose=T,
     res$m2m3.RMSE.clip[m$iter] <- rmse(test.m2m3$resp, m2m3.cold.preds.clip)
     res$m2m3.exp.var[m$iter] <- exp_var(test.m2m3$resp, m2m3.cold.preds)
     res$m2m3.exp.var.clip[m$iter] <- exp_var(test.m2m3$resp, m2m3.cold.preds.clip)
-    res$m2m3.p.cor[m$iter] <- cor(test.m2m3$resp, m2m3.cold.preds, use='complete.obs')
-    res$m2m3.p.cor.clip[m$iter] <- cor(test.m2m3$resp, m2m3.cold.preds.clip, use='complete.obs')
-    res$m2m3.s.cor[m$iter] <- cor(test.m2m3$resp, m2m3.cold.preds, use='complete.obs', method='spearman')
-    res$m2m3.s.cor.clip[m$iter] <- cor(test.m2m3$resp, m2m3.cold.preds.clip, use='complete.obs', method='spearman')
+    res$m2m3.p.cor[m$iter] <- tryCatch(cor(test.m2m3$resp, m2m3.cold.preds, use='complete.obs'), error=function(e) NA)
+    res$m2m3.p.cor.clip[m$iter] <- tryCatch(cor(test.m2m3$resp, m2m3.cold.preds.clip, use='complete.obs'), error=function(e) NA)
+    res$m2m3.s.cor[m$iter] <- tryCatch(cor(test.m2m3$resp, m2m3.cold.preds, use='complete.obs', method='spearman'), error=function(e) NA)
+    res$m2m3.s.cor.clip[m$iter] <- tryCatch(cor(test.m2m3$resp, m2m3.cold.preds.clip, use='complete.obs', method='spearman'), error=function(e) NA)
     if(verbose) {
       print(sprintf('Mode 2 & 3 cold RMSE: %.2f, clipped: %.2f', 
                     res$m2m3.RMSE[m$iter], res$m2m3.RMSE.clip[m$iter]))
@@ -290,7 +290,7 @@ test_results <- function(m, d, test.results=numeric(0), verbose=T,
     }
   }
   
-  if(length(test.m1m2m3)) {
+  if(length(test.m1m2m3)) if(sum(!is.na(test.m1m2m3$resp))) {
     m1m2m3.cold.preds <- test(d=test.m1m2m3, m=m)
     res$m1m2m3.RMSE[m$iter] <- rmse(test.m1m2m3$resp, m1m2m3.cold.preds)
     m1m2m3.cold.preds.clip <- m1m2m3.cold.preds
@@ -299,10 +299,10 @@ test_results <- function(m, d, test.results=numeric(0), verbose=T,
     res$m1m2m3.RMSE.clip[m$iter] <- rmse(test.m1m2m3$resp, m1m2m3.cold.preds.clip)
     res$m1m2m3.exp.var[m$iter] <- exp_var(test.m1m2m3$resp, m1m2m3.cold.preds)
     res$m1m2m3.exp.var.clip[m$iter] <- exp_var(test.m1m2m3$resp, m1m2m3.cold.preds.clip)
-    res$m1m2m3.p.cor[m$iter] <- cor(test.m1m2m3$resp, m1m2m3.cold.preds, use='complete.obs')
-    res$m1m2m3.p.cor.clip[m$iter] <- cor(test.m1m2m3$resp, m1m2m3.cold.preds.clip, use='complete.obs')
-    res$m1m2m3.s.cor[m$iter] <- cor(test.m1m2m3$resp, m1m2m3.cold.preds, use='complete.obs', method='spearman')
-    res$m1m2m3.s.cor.clip[m$iter] <- cor(test.m1m2m3$resp, m1m2m3.cold.preds.clip, use='complete.obs', method='spearman')
+    res$m1m2m3.p.cor[m$iter] <- tryCatch(cor(test.m1m2m3$resp, m1m2m3.cold.preds, use='complete.obs'), error=function(e) NA)
+    res$m1m2m3.p.cor.clip[m$iter] <- tryCatch(or(test.m1m2m3$resp, m1m2m3.cold.preds.clip, use='complete.obs'), error=function(e) NA)
+    res$m1m2m3.s.cor[m$iter] <- tryCatch(cor(test.m1m2m3$resp, m1m2m3.cold.preds, use='complete.obs', method='spearman'), error=function(e) NA)
+    res$m1m2m3.s.cor.clip[m$iter] <- tryCatch(cor(test.m1m2m3$resp, m1m2m3.cold.preds.clip, use='complete.obs', method='spearman'), error=function(e) NA)
     if(verbose) {
       print(sprintf('Mode 1, 2 & 3 cold RMSE: %.2f, clipped: %.2f', 
                     res$m1m2m3.RMSE[m$iter], res$m1m2m3.RMSE.clip[m$iter]))

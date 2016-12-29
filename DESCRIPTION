@@ -52,7 +52,6 @@ Collate:
     'update_mode2_CP.R'
     'update_mode3_CP.R'
 Imports: 
-    knitr,
     foreach,
     R6,
     iterators,

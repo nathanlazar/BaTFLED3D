@@ -145,7 +145,7 @@ get_model_params <- function(args) {
                  core.2D.alpha=1, core.2D.beta=1,
                  core.3D.alpha=1, core.3D.beta=1,
                  core.updates=Inf,
-                 m1.sigma2=.01, m2.sigma2=.01, m3.sigma2=1,
+                 m1.sigma2=.01, m2.sigma2=.01, m3.sigma2=0.01,
                  sigma2=1, 
                  remove.start=Inf, 
                  remove.per=0,

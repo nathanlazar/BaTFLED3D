@@ -453,9 +453,9 @@ Tucker_model <- R6Class("Tucker_model",
        }
        
        # Initialize the H variance matrices with H.var
-       mode1.H.var <- matrix(H.var, I, ncol=core1, dimnames=dimnames(mode1.H.var))
-       mode2.H.var <- matrix(H.var, J, ncol=core2, dimnames=dimnames(mode2.H.var))
-       mode3.H.var <- matrix(H.var, K, ncol=core3, dimnames=dimnames(mode3.H.var))
+       mode1.H.var <<- matrix(H.var, I, ncol=core1, dimnames=dimnames(mode1.H.var))
+       mode2.H.var <<- matrix(H.var, J, ncol=core2, dimnames=dimnames(mode2.H.var))
+       mode3.H.var <<- matrix(H.var, K, ncol=core3, dimnames=dimnames(mode3.H.var))
        
        # If random.H is true, initialize latent (H) mean matrices with mean 0 and std. 
        # dev. given by H.samp.sd. The first constant column are all 1.
