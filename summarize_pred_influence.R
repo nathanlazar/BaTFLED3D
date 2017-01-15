@@ -5,7 +5,7 @@
 
 # Example: Rscript summarize_pred_influence.R CTRP2results/run_1188453
 
-.libPaths("/home/users/lazar/R/x86_64-redhat-linux-gnu-library/3.2")
+# Creates file <run_prefix>_pred_infl.Rdata
 
 library(dplyr)
 library(methods)

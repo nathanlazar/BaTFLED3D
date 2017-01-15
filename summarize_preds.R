@@ -5,12 +5,11 @@
 
 # Resulting Rdata object stored in <run_prefix>_preds.Rdata
 
-.libPaths("/home/users/lazar/R/x86_64-redhat-linux-gnu-library/3.2")
-
 library(dplyr)
 library(methods)
 library(R6)
-devtools::document()
+library(BaTFLED3D)
+#devtools::document()
 
 args <- commandArgs(TRUE)
 run_prefix <- args[1]

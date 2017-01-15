@@ -166,11 +166,11 @@ mk_toy <- function(params) {
                                colnames(toy$mode3.H))
     if(H1.intercept & H2.intercept & H3.intercept) toy$core[1,1,1] <- true.0D
     if(H2.intercept & H3.intercept) 
-      toy$core[!grepl('const', colnames(toy$mode1.H)),,][sample(R1, true.1D.m1),1,1] <- 1
+      toy$core[!grepl('const', colnames(toy$mode1.H)),1,1][sample(R1, true.1D.m1)] <- 1
     if(H1.intercept & H3.intercept) 
-      toy$core[,!grepl('const', colnames(toy$mode2.H)),][1,sample(R2, true.1D.m2),1] <- 1
+      toy$core[1,!grepl('const', colnames(toy$mode2.H)),1][sample(R2, true.1D.m2)] <- 1
     if(H1.intercept & H2.intercept) 
-      toy$core[,,!grepl('const', colnames(toy$mode3.H))][1,1,sample(R3, true.1D.m3)] <- 1
+      toy$core[1,1,!grepl('const', colnames(toy$mode3.H))][sample(R3, true.1D.m3)] <- 1
 
     if(H3.intercept)
       toy$core[!grepl('const', colnames(toy$mode1.H)),

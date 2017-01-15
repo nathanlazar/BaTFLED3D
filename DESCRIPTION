@@ -10,6 +10,7 @@ License: non-standard license see github.com/nathanlazar/BaTFLED3D
 LazyData: true
 RoxygenNote: 5.0.1
 Collate:
+    'diagnostics.R'
     'CP_model.R'
     'Tucker_model.R'
     'Viewing.R'

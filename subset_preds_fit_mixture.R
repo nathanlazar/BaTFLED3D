@@ -6,7 +6,7 @@
 # First argument is Rdata object created with summarize_preds.R 
 # or summarize_pred_influence.R 
 
-# Usage: subset_preds.R <*_preds.Rdata> <m1_matrix.Rdata> <m2_matrix.Rdata>
+# Usage: subset_preds_fit_mixture.R <*_preds.Rdata> <m1_matrix.Rdata> <m2_matrix.Rdata>
 #                       <m3_matrix.Rdata> <number of folds selecting to keep predictor> 
 #                       <out directory>
 
@@ -22,9 +22,7 @@
 # args <- list('DREAM7results/run_1047559_pred_infl.Rdata',
 #              '../DREAM7/DREAM7_cl.Rdata',
 #              '../DREAM7/DREAM7_dr_nodt.Rdata',
-#              'none', '3', 'DREAM7results/run_1047559/lap3_preds')
-
-.libPaths("/home/users/lazar/R/x86_64-redhat-linux-gnu-library/3.2")
+#              'none', '3', 'DREAM7results/run_1047559_selected_preds')
 
 library(dplyr)
 library(methods)

@@ -41,11 +41,11 @@ im_2_mat <- function(x1, x2, high='red', xaxt='n', yaxt='n', scale='col',
   
   # Remove constant columns if present
   if(sum(apply(x1, 2, function(x) all(x == rep(1,nrow(x1)))))>0) {
-    x1 <- x1[,colnames(x1)!='const']
+    x1 <- x1[,colnames(x1)!='const',drop=F]
     const1 <-T
   } else const1 <- F
   if(sum(apply(x2, 2, function(x) all(x == rep(1,nrow(x2)))))>0) {
-    x2 <- x2[,colnames(x2)!='const']
+    x2 <- x2[,colnames(x2)!='const',drop=F]
     const2 <- T
   } else const2 <- F
   
@@ -99,7 +99,7 @@ im_2_mat <- function(x1, x2, high='red', xaxt='n', yaxt='n', scale='col',
   if(center) {
     zlim=c(-max(c(abs(x1), abs(x2))), max(c(abs(x1), abs(x2))))
   } else {
-    zlim <- range(x1, x2, na.rm=T)    
+    zlim <- range(x1, x2, na.rm=T)
   }
   
   # Add back in constant columns

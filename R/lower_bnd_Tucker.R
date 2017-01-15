@@ -29,12 +29,12 @@ lower_bnd_Tucker <- function(m, d) {
 
   # Remove the constant column from the H matrices if present and rename them so that 
   # m isn't modified in place.
-  mode1.H.mean <- m$mode1.H.mean[,!grepl('const', colnames(m$mode1.H.mean))]
-  mode2.H.mean <- m$mode2.H.mean[,!grepl('const', colnames(m$mode2.H.mean))]
-  mode3.H.mean <- m$mode3.H.mean[,!grepl('const', colnames(m$mode3.H.mean))]
-  mode1.H.var <- m$mode1.H.var[,!grepl('const', colnames(m$mode1.H.var))]
-  mode2.H.var <- m$mode2.H.var[,!grepl('const', colnames(m$mode2.H.var))]
-  mode3.H.var <- m$mode3.H.var[,!grepl('const', colnames(m$mode3.H.var))]
+  mode1.H.mean <- m$mode1.H.mean[,!grepl('const', colnames(m$mode1.H.mean)), drop=F]
+  mode2.H.mean <- m$mode2.H.mean[,!grepl('const', colnames(m$mode2.H.mean)), drop=F]
+  mode3.H.mean <- m$mode3.H.mean[,!grepl('const', colnames(m$mode3.H.mean)), drop=F]
+  mode1.H.var <- m$mode1.H.var[,!grepl('const', colnames(m$mode1.H.var)), drop=F]
+  mode2.H.var <- m$mode2.H.var[,!grepl('const', colnames(m$mode2.H.var)), drop=F]
+  mode3.H.var <- m$mode3.H.var[,!grepl('const', colnames(m$mode3.H.var)), drop=F]
   
   log.2.pi <- log(2*pi)
   

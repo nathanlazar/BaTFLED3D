@@ -106,26 +106,33 @@ update_mode2_Tucker <- function(m, d, params) {
         1/((1/sigma2) * sum(delta * (sum1 + sum2 + sum3 + sum4)) + (1/m2.sigma2))
       }
   } else {
-    m$mode2.H.var[,] <- foreach(delta=iterators::iapply(d$delta, 2), .combine='rbind') %:%
-      foreach(core.mean=iterators::iapply(m$core.mean[,,], 2), 
-              core.var=iterators::iapply(m$core.var[,,], 2), .combine='c') %do% {
+    dm <- dimnames(m$mode2.H.var)
+    m$mode2.H.var <- foreach(delta=iterators::iapply(d$delta, 2), .combine='rbind') %:%
+      foreach(core.mean=iterators::iapply(m$core.mean, 2), 
+              core.var=iterators::iapply(m$core.var, 2), .combine='c') %do% {
         sum1 <- matrix(0, I, K); sum2 <- matrix(0, I, K)
         sum3 <- matrix(0, I, K); sum4 <- matrix(0, I, K)
+        if(is.null(dim(delta))) delta <- matrix(delta, ncol=1)
+        if(is.null(dim(core.mean))) core.mean <- matrix(core.mean, ncol=1)
+        if(is.null(dim(core.var))) core.var <- matrix(core.var, ncol=1)
         for(r1 in 1:core1) for(r3 in 1:core3) {
           sum1 <- sum1 + core.mean[r1,r3] * outer(mode1.H.mean[,r1], mode3.H.mean[,r3]) *
-            (mode1.H.mean[,-r1,drop=F] %*% core.mean[-r1,-r3]) %*% t(mode3.H.mean[,-r3,drop=F])
+            (mode1.H.mean[,-r1,drop=F] %*% core.mean[-r1,-r3,drop=F]) %*% t(mode3.H.mean[,-r3,drop=F])
           sum2 <- sum2 + core.mean[r1,r3] *
             outer((mode1.H.mean[,r1]^2 + mode1.H.var[,r1]), mode3.H.mean[,r3]) *
-            matrix(mode3.H.mean[,-r3,drop=F] %*% core.mean[r1,-r3], I, K, byrow=T)
+            matrix(mode3.H.mean[,-r3] %*% core.mean[r1,-r3], I, K, byrow=T)
           sum3 <- sum3 + core.mean[r1,r3] *
             outer(mode1.H.mean[,r1], (mode3.H.mean[,r3]^2 + mode3.H.var[,r3])) *
-            matrix(mode1.H.mean[,-r1,drop=F] %*% core.mean[-r1,r3], I, K)
+            matrix(mode1.H.mean[,-r1] %*% core.mean[-r1,r3], I, K)
           sum4 <- sum4 + (core.mean[r1,r3]^2 + core.var[r1,r3]) *
             outer((mode1.H.mean[,r1]^2 + mode1.H.var[,r1]),
                   (mode3.H.mean[,r3]^2 + mode3.H.var[,r3]))
         }
         1/((1/sigma2) * sum(delta * (sum1 + sum2 + sum3 + sum4)) + (1/m2.sigma2))
-      }
+    }
+    if(is.null(dim(m$mode2.H.var)))
+      m$mode2.H.var <- matrix(m$mode2.H.var, 1,1)
+    dimnames(m$mode2.H.var) <- dm
   }
   
   # Compute as much as possible outside of loops
