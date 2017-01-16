@@ -19,7 +19,6 @@
 mult_3d <- function(core, x, y, z, names=T) {
   # Multiply three matrices through a core tensor
   # Requires rTensor library
-<<<<<<< HEAD
   # resp <- rTensor::ttm(rTensor::ttm(rTensor::ttm(rTensor::as.tensor(core), x, 1), y, 2), z, 3)@data
   
   # If one of the dimensions of the core is degenerate, return a zero tensor of the appropriate size
@@ -30,9 +29,6 @@ mult_3d <- function(core, x, y, z, names=T) {
   }
   
   if(names) dimnames(resp) <- list(rownames(x), rownames(y), rownames(z))
-=======
-  resp <-  rTensor::ttm(rTensor::ttm(rTensor::ttm(rTensor::as.tensor(core), x, 1), y, 2), z, 3)
->>>>>>> b452907b1fbd5d5edc1cccb97e72c2c1d3cebb36
 
   return(resp)
 }
