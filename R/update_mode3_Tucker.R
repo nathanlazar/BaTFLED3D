@@ -107,10 +107,16 @@ update_mode3_Tucker <- function(m, d, params) {
         1/((1/sigma2) * sum(delta * (sum1 + sum2 + sum3 + sum4)) + (1/m3.sigma2))
       }
   } else {
+<<<<<<< HEAD
     dm <- dimnames(m$mode3.H.var)
     m$mode3.H.var <- foreach(delta=iterators::iapply(d$delta, 3), .combine='rbind') %:%
       foreach(core.mean=iterators::iapply(m$core.mean[,,,drop=F], 3), 
               core.var=iterators::iapply(m$core.var[,,,drop=F], 3), .combine='c') %do% {
+=======
+    m$mode3.H.var[,] <- foreach(delta=iterators::iapply(d$delta, 3), .combine='rbind') %:%
+      foreach(core.mean=iterators::iapply(m$core.mean[,,], 3), 
+              core.var=iterators::iapply(m$core.var[,,], 3), .combine='c') %do% {
+>>>>>>> b452907b1fbd5d5edc1cccb97e72c2c1d3cebb36
         sum1 <- matrix(0, I, J); sum2 <- matrix(0, I, J)
         sum3 <- matrix(0, I, J); sum4 <- matrix(0, I, J)
         if(is.null(dim(delta))) delta <- matrix(delta, ncol=1)
