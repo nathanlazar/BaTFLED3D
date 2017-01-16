@@ -21,6 +21,7 @@ Collate:
     'im_2_mat.R'
     'im_mat.R'
     'input_data.R'
+    'kernelize.R'
     'lower_bnd_Tucker.R'
     'lower_bnd_CP.R'
     'mk_model.R'
@@ -52,6 +53,7 @@ Collate:
     'update_mode1_CP.R'
     'update_mode2_CP.R'
     'update_mode3_CP.R'
+Imports:
     foreach,
     R6,
     iterators,
