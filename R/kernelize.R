@@ -37,10 +37,12 @@ kernelize <- function(m, sigma2=100) {
         if(j == k) {
           kerns[[i]][j,k] <- 1 
         } else {
-          kerns[[i]][j,k] <- sum(m[j,] & m[k,])/sum(m[j,] | m[k,])
+          union <- sum(sub[j,] | sub[k,])
+          if(union != 0) {
+            kerns[[i]][j,k] <- sum(sub[j,] & sub[k,])/union
+          } else kerns[[i]][j,k] <- 0
         }
       }
-      diff <- dist(sub, diag=T, upper=T)^2
     } else {
       kerns[[i]] <- exp(as.matrix(-(dist(sub, diag=T, upper=T)^2)/sigma2))
         #cor(t(sub))

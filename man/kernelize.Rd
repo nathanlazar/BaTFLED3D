@@ -9,7 +9,7 @@ kernelize(m, sigma2 = 100)
 \arguments{
 \item{m}{matrix on which to compute kernels}
 
-\item{sigma2}{numeric bandwidth (variance) for Gaussian kernels}
+\item{sigma2}{numeric bandwidth (variance) for Gaussian kernels (default: 100)}
 }
 \value{
 m.kern matrix with the kernels concatenated column-wise
