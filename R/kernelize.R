@@ -1,4 +1,4 @@
-#' Transform a matrix of input data into a set of concatenated kernel matrices
+#' Transform a matrix of input data into a matrix of concatenated kernel matrices
 #' 
 #' The input matrix should have samples as the rows and features as columns. A kernel will 
 #' computed across all training data for each unique column category. The column names
@@ -8,6 +8,7 @@
 #' 
 #' @export
 #' @param m matrix on which to compute kernels
+#' @param sigma2 numeric bandwidth (variance) for Gaussian kernels (default: 100)
 #' 
 #' @return m.kern matrix with the kernels concatenated column-wise
 #' 
@@ -18,6 +19,8 @@
 #' m.kern <- kernelize(m)
 
 kernelize <- function(m, sigma2=100) {
+  if(ncol(m)==0) return(m)
+  
   col.names <- colnames(m)
   cat <- unique(sapply(strsplit(col.names, '.', fixed=T), '[', 1))
   kerns <- list()

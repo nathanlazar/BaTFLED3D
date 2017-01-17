@@ -2,12 +2,14 @@
 % Please edit documentation in R/kernelize.R
 \name{kernelize}
 \alias{kernelize}
-\title{Transform a matrix of input data into a set of concatenated kernel matrices}
+\title{Transform a matrix of input data into a matrix of concatenated kernel matrices}
 \usage{
 kernelize(m, sigma2 = 100)
 }
 \arguments{
 \item{m}{matrix on which to compute kernels}
+
+\item{sigma2}{numeric bandwidth (variance) for Gaussian kernels}
 }
 \value{
 m.kern matrix with the kernels concatenated column-wise
