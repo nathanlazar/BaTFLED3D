@@ -1,6 +1,6 @@
 Package: BaTFLED3D
 Title: Bayesian Tensor Factorization Linked to External Data
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: person("Nathan", "Lazar", email = "nathan.lazar@gmail.com", role = c("aut", "cre"))
 Description: Predicts responses in a three-dimensional array (tensor) using
     preidictor matrices for each dimension.
@@ -59,7 +59,8 @@ Imports:
     iterators,
     rTensor,
     dplyr,
-    ggplot2
+    ggplot2,
+    RColorBrewer
 Suggests:
     doMC,
     doParallel
