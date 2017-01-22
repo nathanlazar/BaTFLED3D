@@ -2,6 +2,8 @@
 #'
 #' Update is performed in place to avoid memory issues. There is no return value.
 #' 
+#' @importFrom foreach %dopar%
+#' @importFrom foreach %:%
 #' @export
 #' @param m A \code{Tucker_model} object created with \code{mk_model} 
 #' @param d Input data object created with \code{input_data}
@@ -20,8 +22,6 @@
 #' update_mode3_Tucker(m=toy.model, d=train.data, params=model.params)
 
 update_mode3_Tucker <- function(m, d, params) {
-  library(foreach) # namespace must be loaded for %do% and %dopar%
-  
   # Make all param variables available locally
   for(i in 1:length(params)) {
     assign(names(params)[i], params[i][[1]])
@@ -88,7 +88,7 @@ update_mode3_Tucker <- function(m, d, params) {
   if(H3.intercept) {
     m$mode3.H.var[,-1] <- foreach(delta=iterators::iapply(d$delta, 3), .combine='rbind') %:%
       foreach(core.mean=iterators::iapply(m$core.mean[,,-1,drop=F], 3), 
-              core.var=iterators::iapply(m$core.var[,,-1,drop=F], 3), .combine='c') %do% {
+              core.var=iterators::iapply(m$core.var[,,-1,drop=F], 3), .combine='c') %dopar% {
         sum1 <- matrix(0, I, J); sum2 <- matrix(0, I, J)
         sum3 <- matrix(0, I, J); sum4 <- matrix(0, I, J)
         for(r1 in 1:core1) for(r2 in 1:core2) {
@@ -110,7 +110,7 @@ update_mode3_Tucker <- function(m, d, params) {
     dm <- dimnames(m$mode3.H.var)
     m$mode3.H.var <- foreach(delta=iterators::iapply(d$delta, 3), .combine='rbind') %:%
       foreach(core.mean=iterators::iapply(m$core.mean[,,,drop=F], 3), 
-              core.var=iterators::iapply(m$core.var[,,,drop=F], 3), .combine='c') %do% {
+              core.var=iterators::iapply(m$core.var[,,,drop=F], 3), .combine='c') %dopar% {
         sum1 <- matrix(0, I, J); sum2 <- matrix(0, I, J)
         sum3 <- matrix(0, I, J); sum4 <- matrix(0, I, J)
         if(is.null(dim(delta))) delta <- matrix(delta, ncol=1)
@@ -155,7 +155,7 @@ update_mode3_Tucker <- function(m, d, params) {
   m$mode3.H.mean <- foreach(mode3.H.mean = iterators::iter(m$mode3.H.mean, by='row'), 
                             mode3.H.var = iterators::iter(m$mode3.H.var, by='row'),
                             resp = iterators::iapply(d$resp, 3),
-                            x_t_a = iterators::iter(x_times_a, by='row'), .combine='rbind') %do% {
+                            x_t_a = iterators::iter(x_times_a, by='row'), .combine='rbind') %dopar% {
     for(r3 in R3.rng) { 
       big_sum <- matrix(0,I,J)
       for(r3. in (1:core3)[-r3]) {
