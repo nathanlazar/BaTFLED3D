@@ -26,14 +26,14 @@
 #' 
 #' @examples
 #' par(mfrow=c(1,2))
-#' im_2_mat(matrix(1:12, nrow=3, ncol=4),  matrix(13:24, nrow=3, ncol=4), sort=F, scale=F)
-#' im_2_mat(matrix(1:12, nrow=3, ncol=4),  matrix(13:24, nrow=3, ncol=4), sort=T, scale=F)
-#' im_2_mat(matrix(1:12, nrow=3, ncol=4),  matrix(13:24, nrow=3, ncol=4), sort=T, scale=T)
-#' im_2_mat(matrix(1:12, nrow=3, ncol=4),  matrix(13:24, nrow=3, ncol=4), sort=F, 
-#'          scale=F, center=T)
+#' im_2_mat(matrix(1:12, nrow=3, ncol=4),  matrix(13:24, nrow=3, ncol=4), sort=FALSE, scale=FALSE)
+#' im_2_mat(matrix(1:12, nrow=3, ncol=4),  matrix(13:24, nrow=3, ncol=4), sort=TRUE, scale=FALSE)
+#' im_2_mat(matrix(1:12, nrow=3, ncol=4),  matrix(13:24, nrow=3, ncol=4), sort=TRUE, scale=TRUE)
+#' im_2_mat(matrix(1:12, nrow=3, ncol=4),  matrix(13:24, nrow=3, ncol=4), sort=FALSE, 
+#'          scale=FALSE, center=TRUE)
 
 im_2_mat <- function(x1, x2, high='red', xaxt='n', yaxt='n', scale='col', 
-                     absol=F, sort=T, center=F, main1='', main2='', ...) {
+                     absol=FALSE, sort=TRUE, center=FALSE, main1='', main2='', ...) {
   # display images of rotated matrices with the option to sort columns
   # by absolute magnitude, zlimits are set to the max and min of both matrices
   
@@ -41,13 +41,13 @@ im_2_mat <- function(x1, x2, high='red', xaxt='n', yaxt='n', scale='col',
   
   # Remove constant columns if present
   if(sum(apply(x1, 2, function(x) all(x == rep(1,nrow(x1)))))>0) {
-    x1 <- x1[,colnames(x1)!='const',drop=F]
-    const1 <-T
-  } else const1 <- F
+    x1 <- x1[,colnames(x1)!='const',drop=FALSE]
+    const1 <-TRUE
+  } else const1 <- FALSE
   if(sum(apply(x2, 2, function(x) all(x == rep(1,nrow(x2)))))>0) {
-    x2 <- x2[,colnames(x2)!='const',drop=F]
-    const2 <- T
-  } else const2 <- F
+    x2 <- x2[,colnames(x2)!='const',drop=FALSE]
+    const2 <- TRUE
+  } else const2 <- FALSE
   
   if(scale=='col') {
     # Safe version of scale (if sd of columns = 0, set to minimum value)
@@ -77,7 +77,7 @@ im_2_mat <- function(x1, x2, high='red', xaxt='n', yaxt='n', scale='col',
         x2 <- x2[!grepl('const', rownames(x1)),]
       } else {
         print('Can not sort, matrices are different sizes')
-        sort <- F
+        sort <- FALSE
       }
     } else {
       # Make a correlation matrix between the columns of the two matrices
@@ -99,7 +99,7 @@ im_2_mat <- function(x1, x2, high='red', xaxt='n', yaxt='n', scale='col',
   if(center) {
     zlim=c(-max(c(abs(x1), abs(x2))), max(c(abs(x1), abs(x2))))
   } else {
-    zlim <- range(x1, x2, na.rm=T)
+    zlim <- range(x1, x2, na.rm=TRUE)
   }
   
   # Add back in constant columns

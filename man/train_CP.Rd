@@ -11,6 +11,8 @@ train_CP(d, m, new.iter = 1, params)
 
 \item{m}{a \code{CP_model} object created with \code{mk_model}}
 
+\item{new.iter}{numeric number of iterations to run (def: 1)}
+
 \item{params}{List of parameters created with \code{get_model_params()}}
 }
 \description{

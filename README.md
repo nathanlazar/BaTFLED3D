@@ -21,6 +21,6 @@ Installation
 -----------
 
 ```
-install.packages('BaTFLED3D_0.1.2.tar.gz', repos = NULL, type="source")
+install.packages('BaTFLED3D_0.1.3.tar.gz', repos = NULL, type="source")
 library(BaTFLED3D)
 ```

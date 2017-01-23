@@ -7,9 +7,11 @@
 plot_preds(pred, true, show.na = T, ...)
 }
 \arguments{
-\item{pred}{a matrix or vector of predicted values}
+\item{pred}{matrix or vector of predicted values}
 
-\item{true}{a matrix or vector of predicted values}
+\item{true}{matrix or vector of predicted values}
+
+\item{show.na}{logical, display NA values as blue dots at the mean for the x or y axis (def: T)}
 
 \item{...}{other parameters passed to plot}
 }

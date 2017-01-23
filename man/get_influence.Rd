@@ -8,9 +8,15 @@ by thier influence on the output}
 get_influence(m, d, method = "sub", interactions = TRUE)
 }
 \arguments{
-\item{m}{a \code{Tucker_model} or \code{CP_model} object}
+\item{m}{\code{Tucker_model} or \code{CP_model} object}
 
-\item{d}{an \code{input_data} object}
+\item{d}{\code{input_data} object}
+
+\item{method}{string 'sub' or 'add' indicating whether to start with a full or empty 
+feature vector and remove or add features to judge their influence.}
+
+\item{interactions}{logical indicating whether to get influence for two-way interactions 
+between predictors (def: sub)}
 }
 \description{
 If \code{method} is \code{'add'} then the baseline prediction is made using just the

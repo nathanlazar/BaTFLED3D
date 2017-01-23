@@ -12,8 +12,12 @@
 #' interacting are measured
 #' 
 #' @export
-#' @param m a \code{Tucker_model} or \code{CP_model} object
-#' @param d an \code{input_data} object
+#' @param m \code{Tucker_model} or \code{CP_model} object
+#' @param d \code{input_data} object
+#' @param method string 'sub' or 'add' indicating whether to start with a full or empty 
+#' feature vector and remove or add features to judge their influence.
+#' @param interactions logical indicating whether to get influence for two-way interactions 
+#' between predictors (def: sub)
  
 get_influence <- function(m, d, method='sub', interactions=TRUE) {
   

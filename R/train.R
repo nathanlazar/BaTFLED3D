@@ -5,7 +5,7 @@
 #' @export
 #' @param d an input data object created with \code{input_data}
 #' @param m a \code{CP_model} or \code{Tucker_model} object created with \code{mk_model} 
-#' @param params List of parameters created with \code{get_model_params()}
+#' @param ... extra arguments (params) passed to train_CP or train_Tucker
 #' @examples
 #' data.params <- get_data_params(c('decomp=Tucker'))
 #' toy <- mk_toy(data.params)

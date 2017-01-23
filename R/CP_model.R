@@ -21,7 +21,7 @@
 #' }
 #' 
 #' 
-#' @param data An \code{input_data} object. See \code{input_data}.
+#' @param d An \code{input_data} object. See \code{input_data}.
 #' @param params A list of parameter values. See \code{get_model_params}.
 #' @method clone() Creates a copy of the object with a new memory space.
 #' @method initialize() Initializes a model with random values.
@@ -29,15 +29,15 @@
 #' @seealso \code{get_model_params}, \code{input_data}, \code{Tucker_model}
 #' 
 #' @examples
-#' args <- c('decomp=CP')
-#' params <- get_model_params(args)
-#' data <- input_data$new(mode1.X=matrix(rnorm(20),4,5),
-#'                        mode2.X=matrix(rnorm(30),3,10),
-#'                        mode3.X=matrix(NA, 5, 0),
-#'                        resp=array(rnorm(60), dim=c(4,3,5)))
-#' toy <- CP_model$new(data, params)
-#' toy$rand_init(params)
-#' im_mat(toy$mode1.A.mean)
+#' data.params <- get_data_params(c('decomp=CP'))
+#' toy <- mk_toy(data.params)
+#' train.data <- input_data$new(mode1.X=toy$mode1.X[,-1],
+#'                              mode2.X=toy$mode2.X[,-1],
+#'                              mode3.X=toy$mode3.X[,-1],
+#'                              resp=toy$resp)
+#' model.params <- get_model_params(c('decomp=CP'))
+#' toy.model <- mk_model(train.data, model.params)
+#' toy.model$rand_init(model.params)
 
 CP_model <- R6Class("CP_model",
     portable=F,
@@ -94,6 +94,17 @@ CP_model <- R6Class("CP_model",
         J <- nrow(d$mode2.X); Q <- ncol(d$mode2.X)
         K <- nrow(d$mode3.X); S <- ncol(d$mode3.X)
   
+        # If no names are given for the input matrices, use defaults
+        if(is.null(rownames(d$mode1.X))) rownames(d$mode1.X) <- paste0('m1.samp.', 1:I)
+        if(is.null(colnames(d$mode1.X)) & P) colnames(d$mode1.X) <- paste0('m1.feat.', 1:P)
+        if(is.null(rownames(d$mode2.X))) rownames(d$mode2.X) <- paste0('m2.samp.', 1:J)
+        if(is.null(colnames(d$mode2.X)) & Q) colnames(d$mode2.X) <- paste0('m2.feat.', 1:Q)
+        if(is.null(rownames(d$mode3.X))) rownames(d$mode3.X) <- paste0('m3.samp.', 1:K)
+        if(is.null(colnames(d$mode3.X)) & S) colnames(d$mode3.X) <- paste0('m3.feat.', 1:S)
+        if(is.null(dimnames(d$resp)[[1]])) dimnames(d$resp)[[1]] <- rownames(d$mode1.X)
+        if(is.null(dimnames(d$resp)[[2]])) dimnames(d$resp)[[2]] <- rownames(d$mode2.X)
+        if(is.null(dimnames(d$resp)[[3]])) dimnames(d$resp)[[3]] <- rownames(d$mode3.X)
+        
         # These cross products are used in training
         if(A1.intercept) {
           m1Xm1X <<- crossprod(cbind(const=1,d$mode1.X), cbind(const=1,d$mode1.X))

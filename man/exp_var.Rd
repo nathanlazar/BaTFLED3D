@@ -10,6 +10,8 @@ exp_var(obs, pred, verbose = F)
 \item{obs}{data.frame, vector or matrix}
 
 \item{pred}{data.frame, vector or matrix}
+
+\item{verbose}{logical indicating whether to print result}
 }
 \value{
 numeric value of the explained variance

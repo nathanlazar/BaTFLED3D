@@ -16,7 +16,7 @@ mult_3d(core, x, y, z, names = T)
 
 \item{z}{matrix to multiply by the third mode of \code{core}}
 
-\item{names}{}
+\item{names}{logical indicating whether to keep the dimension names}
 }
 \value{
 Array with sizes given by the number of rows in x, y and z

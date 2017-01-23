@@ -5,6 +5,7 @@
 #' @export
 #' @param obs data.frame, vector or matrix
 #' @param pred data.frame, vector or matrix
+#' @param verbose logical indicating whether to print result
 #' 
 #' @return numeric value of the explained variance
 #' 

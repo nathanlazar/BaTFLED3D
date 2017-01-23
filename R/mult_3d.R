@@ -9,7 +9,7 @@
 #' @param x matrix to multiply by the first mode of \code{core}
 #' @param y matrix to multiply by the second mode of \code{core}
 #' @param z matrix to multiply by the third mode of \code{core}
-#' @param names 
+#' @param names logical indicating whether to keep the dimension names
 #' 
 #' @return Array with sizes given by the number of rows in x, y and z
 #'   

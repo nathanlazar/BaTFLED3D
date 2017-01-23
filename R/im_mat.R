@@ -13,6 +13,7 @@
 #' @param scale logical indicating whether the matrix should be z scaled to have 
 #' columns with norm zero and standard deviation one.
 #' @param ballance logical indicating whether to expand the range so it stays centered at zero
+#' @param zlim numeric bounds on the max and min range for colors.
 #' @param ... other graphical parameters passed to image
 #' 
 #' @return none
@@ -39,7 +40,7 @@ im_mat <- function(x, high='red', xaxt='n', yaxt='n', sort=F, scale=F, ballance=
   
   # Rearrange columns sorted from largest mean value to smallest
   if(sort==T) {
-    sorted <- x %>% apply(2, mean) %>% sort(decreasing=T, index.return=T)
+    sorted <- sort(apply(x, 2, mean), decreasing=T, index.return=T)
     x <- x[,sorted$ix,drop=F]
   }
 

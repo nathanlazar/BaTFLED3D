@@ -9,7 +9,7 @@
 CP_model
 }
 \arguments{
-\item{data}{An \code{input_data} object. See \code{input_data}.}
+\item{d}{An \code{input_data} object. See \code{input_data}.}
 
 \item{params}{A list of parameter values. See \code{get_model_params}.}
 }
@@ -30,15 +30,15 @@ To initialize a \code{CP_model} call the \code{initialize()} method.
 }
 }
 \examples{
-args <- c('decomp=CP')
-params <- get_model_params(args)
-data <- input_data$new(mode1.X=matrix(rnorm(20),4,5),
-                       mode2.X=matrix(rnorm(30),3,10),
-                       mode3.X=matrix(NA, 5, 0),
-                       resp=array(rnorm(60), dim=c(4,3,5)))
-toy <- CP_model$new(data, params)
-toy$rand_init(params)
-im_mat(toy$mode1.A.mean)
+data.params <- get_data_params(c('decomp=CP'))
+toy <- mk_toy(data.params)
+train.data <- input_data$new(mode1.X=toy$mode1.X[,-1],
+                             mode2.X=toy$mode2.X[,-1],
+                             mode3.X=toy$mode3.X[,-1],
+                             resp=toy$resp)
+model.params <- get_model_params(c('decomp=CP'))
+toy.model <- mk_model(train.data, model.params)
+toy.model$rand_init(model.params)
 }
 \seealso{
 \code{get_model_params}, \code{input_data}, \code{Tucker_model}

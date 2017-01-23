@@ -93,11 +93,11 @@ get_data_params <- function(args) {
   # Set defaults
   params <- list(decomp='Tucker', row.share=T, seed=NA, scale=T,
                  m1.rows=20, m2.rows=25, m3.rows=10,
-                 m1.cols=100, m2.cols=150, m3.cols=0,
+                 m1.cols=100, m2.cols=150, m3.cols=50,
                  R=4, R1=4, R2=4, R3=3,
                  A1.const.prob=1, A2.const.prob=1, A3.const.prob=1,
                  m1.true=15, m2.true=20, m3.true=0,
-                 A1.intercept=T, A2.intercept=T, A3.intercept=F,
+                 A1.intercept=T, A2.intercept=T, A3.intercept=T,
                  H1.intercept=T, H2.intercept=T, H3.intercept=T,
                  A.samp.sd=1, H.samp.sd=1, R.samp.sd=1,
                  true.0D=NA, true.1D.m1=NA, true.1D.m2=NA, true.1D.m3=NA,

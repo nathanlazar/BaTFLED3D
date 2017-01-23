@@ -128,10 +128,10 @@ get_model_params <- function(args) {
   }
   
   # Set defaults
-  params <- list(decomp='Tucker', row.share=F, 
+  params <- list(decomp='Tucker', row.share=T, 
                  seed=NA, verbose=F, parallel=T, cores=2, 
                  lower.bnd=T, RMSE=T, exp.var=T, cor=T, time=T,
-                 A1.intercept=T, A2.intercept=T, A3.intercept=F,
+                 A1.intercept=T, A2.intercept=T, A3.intercept=T,
                  H1.intercept=F, H2.intercept=F, H3.intercept=F,
                  R=4, R1=4, R2=4, R3=3,
                  m1.alpha=1, m1.beta=1, 

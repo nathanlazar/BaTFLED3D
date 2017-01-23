@@ -24,6 +24,8 @@ columns with norm zero and standard deviation one.}
 
 \item{ballance}{logical indicating whether to expand the range so it stays centered at zero}
 
+\item{zlim}{numeric bounds on the max and min range for colors.}
+
 \item{...}{other graphical parameters passed to image}
 }
 \value{

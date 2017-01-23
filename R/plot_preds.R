@@ -6,8 +6,9 @@
 #' the true value is not known are plotted at zero in blue.
 #' 
 #' @export
-#' @param pred a matrix or vector of predicted values
-#' @param true a matrix or vector of predicted values
+#' @param pred matrix or vector of predicted values
+#' @param true matrix or vector of predicted values
+#' @param show.na logical, display NA values as blue dots at the mean for the x or y axis (def: T)
 #' @param ... other parameters passed to plot
 #' 
 #' @return none

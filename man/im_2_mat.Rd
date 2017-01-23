@@ -5,7 +5,8 @@
 \title{Plot heatmaps of two matrices in red and blue}
 \usage{
 im_2_mat(x1, x2, high = "red", xaxt = "n", yaxt = "n", scale = "col",
-  absol = F, sort = T, center = F, main1 = "", main2 = "", ...)
+  absol = FALSE, sort = TRUE, center = FALSE, main1 = "", main2 = "",
+  ...)
 }
 \arguments{
 \item{x1}{matrix}
@@ -46,10 +47,10 @@ then the new ordering for the second matrix is returned.
 }
 \examples{
 par(mfrow=c(1,2))
-im_2_mat(matrix(1:12, nrow=3, ncol=4),  matrix(13:24, nrow=3, ncol=4), sort=F, scale=F)
-im_2_mat(matrix(1:12, nrow=3, ncol=4),  matrix(13:24, nrow=3, ncol=4), sort=T, scale=F)
-im_2_mat(matrix(1:12, nrow=3, ncol=4),  matrix(13:24, nrow=3, ncol=4), sort=T, scale=T)
-im_2_mat(matrix(1:12, nrow=3, ncol=4),  matrix(13:24, nrow=3, ncol=4), sort=F, 
-         scale=F, center=T)
+im_2_mat(matrix(1:12, nrow=3, ncol=4),  matrix(13:24, nrow=3, ncol=4), sort=FALSE, scale=FALSE)
+im_2_mat(matrix(1:12, nrow=3, ncol=4),  matrix(13:24, nrow=3, ncol=4), sort=TRUE, scale=FALSE)
+im_2_mat(matrix(1:12, nrow=3, ncol=4),  matrix(13:24, nrow=3, ncol=4), sort=TRUE, scale=TRUE)
+im_2_mat(matrix(1:12, nrow=3, ncol=4),  matrix(13:24, nrow=3, ncol=4), sort=FALSE, 
+         scale=FALSE, center=TRUE)
 }
 

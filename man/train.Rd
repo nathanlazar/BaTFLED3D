@@ -11,7 +11,7 @@ train(d, m, ...)
 
 \item{m}{a \code{CP_model} or \code{Tucker_model} object created with \code{mk_model}}
 
-\item{params}{List of parameters created with \code{get_model_params()}}
+\item{...}{extra arguments (params) passed to train_CP or train_Tucker}
 }
 \description{
 Model objects are updated in place to avoid memory issues. Nothing is returned.
