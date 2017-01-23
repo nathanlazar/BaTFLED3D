@@ -4,6 +4,8 @@
 #' building a model of input and response data with known relationships. If a parameter 
 #' isn't in the given list the default is used.
 #' 
+#' @importFrom stats rbinom
+#' 
 #' @export
 #' @param args A character vector of arguments (character strings) of the form "<name>=<value>". 
 #' Values will be converted to logical or numeric when necessary.

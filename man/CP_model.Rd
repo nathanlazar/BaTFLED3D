@@ -8,11 +8,6 @@
 \usage{
 CP_model
 }
-\arguments{
-\item{d}{An \code{input_data} object. See \code{input_data}.}
-
-\item{params}{A list of parameter values. See \code{get_model_params}.}
-}
 \description{
 \code{CP_model} objects are 'R6' objects so that their values can be updated in place. 
 The object is treated like an environment and components are accessed using the \code{$} 

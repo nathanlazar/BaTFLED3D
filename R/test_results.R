@@ -1,5 +1,7 @@
 #' Get RMSE & explained variance for warm and cold test results
 #' 
+#' @importFrom stats sd cor
+#' 
 #' @export
 #' @param m a \code{CP_model} or \code{Tucker_model} object
 #' @param d an input data object created with \code{input_data}
@@ -299,7 +301,7 @@ test_results <- function(m, d, test.results=numeric(0), verbose=T,
     res$m1m2m3.exp.var[m$iter] <- exp_var(test.m1m2m3$resp, m1m2m3.cold.preds)
     res$m1m2m3.exp.var.clip[m$iter] <- exp_var(test.m1m2m3$resp, m1m2m3.cold.preds.clip)
     res$m1m2m3.p.cor[m$iter] <- tryCatch(cor(test.m1m2m3$resp, m1m2m3.cold.preds, use='complete.obs'), error=function(e) NA)
-    res$m1m2m3.p.cor.clip[m$iter] <- tryCatch(or(test.m1m2m3$resp, m1m2m3.cold.preds.clip, use='complete.obs'), error=function(e) NA)
+    res$m1m2m3.p.cor.clip[m$iter] <- tryCatch(cor(test.m1m2m3$resp, m1m2m3.cold.preds.clip, use='complete.obs'), error=function(e) NA)
     res$m1m2m3.s.cor[m$iter] <- tryCatch(cor(test.m1m2m3$resp, m1m2m3.cold.preds, use='complete.obs', method='spearman'), error=function(e) NA)
     res$m1m2m3.s.cor.clip[m$iter] <- tryCatch(cor(test.m1m2m3$resp, m1m2m3.cold.preds.clip, use='complete.obs', method='spearman'), error=function(e) NA)
     if(verbose) {

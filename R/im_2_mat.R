@@ -5,6 +5,10 @@
 #' columns between the two matrices using their correlation over rows. If \code{sort==TRUE}
 #' then the new ordering for the second matrix is returned.
 #' 
+#' @importFrom grDevices colorRampPalette
+#' @importFrom stats sd
+#' @importFrom graphics image
+#' 
 #' @export
 #' @param x1 matrix
 #' @param x2 matrix

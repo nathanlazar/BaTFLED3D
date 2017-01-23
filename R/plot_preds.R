@@ -5,6 +5,9 @@
 #' diagonal. Points are transparent to show dense clusters. Predictions for points where
 #' the true value is not known are plotted at zero in blue.
 #' 
+#' @importFrom graphics plot abline points
+#' @importFrom grDevices rgb
+#' 
 #' @export
 #' @param pred matrix or vector of predicted values
 #' @param true matrix or vector of predicted values

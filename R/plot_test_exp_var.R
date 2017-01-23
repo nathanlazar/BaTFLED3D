@@ -1,5 +1,7 @@
 #' Plot explained variance results from test data
 #'
+#' @importFrom graphics plot rect points par
+#'
 #' @export
 #' @param test.results an object generated with \code{test_results}
 #' @param ylim Limits of the y-axis.

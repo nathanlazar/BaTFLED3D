@@ -33,19 +33,19 @@ update_mode3_CP <- function(m, d, params) {
   A3.intercept <- ifelse('const' %in% rownames(m$mode3.A.mean), T, F)
   
   if(S != 0) { # If there is no input data, skip updates for lambda and A
-    if(verbose) print("Updating prior lambda vector for mode 3")
+    if(params$verbose) print("Updating prior lambda vector for mode 3")
     
     m3.A.var <- matrix(0, S, R)
     for(r in 1:R) m3.A.var[,r] <- diag(m$mode3.A.cov[,,r])
-    if(row.share) {
+    if(params$row.share) {
       m$mode3.lambda.scale <- 1/(.5*(rowSums(m$mode3.A.mean^2 + m3.A.var)) + 1/m$m3.beta)
     } else m$mode3.lambda.scale <- 1/(.5*(m$mode3.A.mean^2 + m3.A.var) + 1/m$m3.beta)
     
-    if(verbose) print("Updating projection (A) matrix for mode 3")
+    if(params$verbose) print("Updating projection (A) matrix for mode 3")
     # Update mode3.A covariance parameters. They only rely on X and lambdas
     lambda.exp <- m$mode3.lambda.shape * m$mode3.lambda.scale
     for(r in 1:R) {
-      if(row.share) {
+      if(params$row.share) {
         m$mode3.A.cov[,,r] <- chol2inv(chol(diag(lambda.exp) + (1/m$m3.sigma2) * m$m3Xm3X))
       } else
         m$mode3.A.cov[,,r] <- chol2inv(chol(diag(lambda.exp[,r]) + (1/m$m3.sigma2) * m$m3Xm3X))
@@ -61,7 +61,7 @@ update_mode3_CP <- function(m, d, params) {
     }
   }
   
-  if(verbose) print("Updating latent (H) matrix for mode 3")
+  if(params$verbose) print("Updating latent (H) matrix for mode 3")
   # Update the variance first. sapply vectorizes the updates for each row
   for(r in 1:R) {
     m$mode3.H.var[,r] <- sapply(1:K, function(k) 1/((1/m$sigma2) *

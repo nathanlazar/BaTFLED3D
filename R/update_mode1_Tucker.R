@@ -23,11 +23,6 @@
 #' update_mode1_Tucker(m=toy.model, d=train.data, params=model.params)
 
 update_mode1_Tucker <- function(m, d, params) {
-  # Make all param variables available locally
-  for(i in 1:length(params)) {
-    assign(names(params)[i], params[i][[1]])
-  }
-  
   I <- dim(d$resp)[1]; J <- dim(d$resp)[2]; K <- dim(d$resp)[3]
   R1 <- ncol(m$mode1.A.mean); R2 <- ncol(m$mode2.A.mean); R3 <- ncol(m$mode3.A.mean)
   core1 <- ncol(m$mode1.H.mean); core2 <- ncol(m$mode2.H.mean); core3 <- ncol(m$mode3.H.mean)
@@ -37,19 +32,19 @@ update_mode1_Tucker <- function(m, d, params) {
   A1.intercept <- ifelse('const' %in% rownames(m$mode1.A.mean), T, F)
 
   if(P != 0) { # If there is no input data, skip updates for lambda and A
-    if(verbose) print("Updating prior lambda vector for mode 1")
+    if(params$verbose) print("Updating prior lambda vector for mode 1")
 
     m1.A.var <- matrix(0, P, R1)
     for(r1 in 1:R1) m1.A.var[,r1] <- diag(m$mode1.A.cov[,,r1])
-    if(row.share) {
+    if(params$row.share) {
       m$mode1.lambda.scale <- 1/(.5*(rowSums(m$mode1.A.mean^2 + m1.A.var)) + 1/m$m1.beta)
     } else m$mode1.lambda.scale <- 1/(.5*(m$mode1.A.mean^2 + m1.A.var) + 1/m$m1.beta)
 
-    if(verbose) print("Updating projection (A) matrix for mode 1")
+    if(params$verbose) print("Updating projection (A) matrix for mode 1")
     # Update mode1.A covariance parameters. They only rely on X and lambdas
     lambda.exp <- m$mode1.lambda.shape * m$mode1.lambda.scale
     for(r1 in 1:R1) {
-      if(row.share) {
+      if(params$row.share) {
         m$mode1.A.cov[,,r1] <- chol2inv(chol(diag(lambda.exp) + (1/m$m1.sigma2) * m$m1Xm1X))
       } else 
         m$mode1.A.cov[,,r1] <- chol2inv(chol(diag(lambda.exp[,r1]) + (1/m$m1.sigma2) * m$m1Xm1X))
@@ -57,7 +52,7 @@ update_mode1_Tucker <- function(m, d, params) {
     
     # Update each column of A
     if(A1.intercept) {
-      if(H1.intercept) {
+      if(params$H1.intercept) {
         for(r1 in 1:R1) m$mode1.A.mean[,r1] <- (1/m$m1.sigma2) * 
             (m$mode1.A.cov[,,r1] %*% t(cbind(1,d$mode1.X)) %*% m$mode1.H.mean[,r1+1])
       } else {
@@ -65,7 +60,7 @@ update_mode1_Tucker <- function(m, d, params) {
             (m$mode1.A.cov[,,r1] %*% t(cbind(1,d$mode1.X)) %*% m$mode1.H.mean[,r1])
       }
     } else {
-      if(H1.intercept) {
+      if(params$H1.intercept) {
         for(r1 in 1:R1) m$mode1.A.mean[,r1] <- (1/m$m1.sigma2) * 
             (m$mode1.A.cov[,,r1] %*% t(d$mode1.X) %*% m$mode1.H.mean[,r1+1])
       } else {
@@ -76,7 +71,7 @@ update_mode1_Tucker <- function(m, d, params) {
   }
   
   # Update the variance and mean for the H factor matrices
-  if(verbose) print("Updating latent (H) matrix for mode 1")
+  if(params$verbose) print("Updating latent (H) matrix for mode 1")
   
   # Updating variance matrix (m$mode1.H.var)
   # Copy data so all of m and d aren't sent out to worker nodes
@@ -87,7 +82,7 @@ update_mode1_Tucker <- function(m, d, params) {
   sigma2 <- m$sigma2
   m1.sigma2 <- m$m1.sigma2
   
-  if(H1.intercept) {
+  if(params$H1.intercept) {
     m$mode1.H.var[,-1] <- foreach(delta=iterators::iapply(d$delta, 1), .combine='rbind') %:%
       foreach(core.mean=iterators::iapply(m$core.mean[-1,,,drop=F], 1), 
         core.var=iterators::iapply(m$core.var[-1,,,drop=F], 1), .combine='c') %dopar% {
@@ -142,15 +137,18 @@ update_mode1_Tucker <- function(m, d, params) {
   if(P == 0) {
     x_times_a <- matrix(0, I, R1)
   } else x_times_a <- safe_prod(d$mode1.X, m$mode1.A.mean)
-  if(H1.intercept) x_times_a <- cbind(1, x_times_a)
+  if(params$H1.intercept) x_times_a <- cbind(1, x_times_a)
   sum0 <- rTensor::ttl(rTensor::as.tensor(m$core.mean), list(m$mode2.H.mean, m$mode3.H.mean), c(2,3))@data
   
   # Update the mean parameters (m$mode1.H.mean)
   core.mean <- m$core.mean
   dm <- dimnames(m$mode1.H.mean)
   
+  # These are just to avoid errors when checking build
+  mode1.H.var <- NA; resp <- NA; x_t_a <- NA
+
   # Loop is over samples (I)
-  if(H1.intercept) R1.rng <- 2:core1 else R1.rng <- 1:core1 # Don't update the constant column
+  if(params$H1.intercept) R1.rng <- 2:core1 else R1.rng <- 1:core1 # Don't update the constant column
   m$mode1.H.mean <- foreach(mode1.H.mean = iterators::iter(m$mode1.H.mean, by='row'), 
                             mode1.H.var = iterators::iter(m$mode1.H.var, by='row'),
                             resp = iterators::iapply(d$resp, 1),

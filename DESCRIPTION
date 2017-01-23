@@ -2,18 +2,16 @@ Package: BaTFLED3D
 Title: Bayesian Tensor Factorization Linked to External Data
 Version: 0.1.3
 Authors@R: person("Nathan", "Lazar", email = "nathan.lazar@gmail.com", role = c("aut", "cre"))
-Description: Predicts responses in a three-dimensional array (tensor) using
-    preidictor matrices for each dimension.
+Description: Predicts responses in a three-dimensional array (tensor) using features for each dimension.
 Depends:
     R (>= 3.2.2)
-License: non-standard license see github.com/nathanlazar/BaTFLED3D
+License: non-standard license see 'LICENSE' or github.com/nathanlazar/BaTFLED3D
 LazyData: true
 RoxygenNote: 5.0.1
 Collate:
     'diagnostics.R'
     'CP_model.R'
     'Tucker_model.R'
-    'Viewing.R'
     'exp_var.R'
     'get_data_params.R'
     'get_influence.R'
@@ -27,13 +25,11 @@ Collate:
     'mk_model.R'
     'mk_toy.R'
     'mult_3d.R'
-    'normalize_resp.R'
     'plot_preds.R'
     'plot_roc.R'
     'plot_test_RMSE.R'
     'plot_test_cor.R'
     'plot_test_exp_var.R'
-    'remove_preds.R'
     'rmse.R'
     'rot.R'
     'safe_log.R'

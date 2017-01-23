@@ -1,5 +1,7 @@
 #' Plot correlation results from test data
 #' 
+#' @importFrom graphics plot rect points par
+#' 
 #' @export
 #' @param test.results results \code{generated with test_results}
 #' @param ylim limits for the y-axis (NA)

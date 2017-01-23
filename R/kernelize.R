@@ -6,6 +6,8 @@
 #' may be snp.<gene>, meth.<loci>, etc. and this function will produce similarity kernels
 #' for all snp data separately from the methylation data.
 #' 
+#' @importFrom stats dist
+#' 
 #' @export
 #' @param m matrix on which to compute kernels
 #' @param sigma2 numeric bandwidth (variance) for Gaussian kernels (default: 100)

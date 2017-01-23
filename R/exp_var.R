@@ -2,6 +2,8 @@
 #' 
 #' Calculates 1-var(obs-pred)/var(obs). If verbose == TRUE the result is printed.
 #' 
+#' @importFrom stats var
+#' 
 #' @export
 #' @param obs data.frame, vector or matrix
 #' @param pred data.frame, vector or matrix

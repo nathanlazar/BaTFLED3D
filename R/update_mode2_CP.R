@@ -20,11 +20,6 @@
 #' update_mode2_CP(m=toy.model, d=train.data, params=model.params)
 
 update_mode2_CP <- function(m, d, params) {
-  # Make all param variables available locally
-  for(i in 1:length(params)) {
-    assign(names(params)[i], params[i][[1]])
-  }
-  
   J <- dim(d$resp)[2]
   Q <- nrow(m$mode2.A.mean)
   R <- ncol(m$mode2.H.mean)
@@ -33,18 +28,18 @@ update_mode2_CP <- function(m, d, params) {
   A2.intercept <- ifelse('const' %in% rownames(m$mode2.A.mean), T, F)
 
   if(Q != 0) { # If there is no input data, skip updates for lambda and A
-    if(verbose) print("Updating prior lambda vector for mode 2")
+    if(params$verbose) print("Updating prior lambda vector for mode 2")
     m2.A.var <- matrix(0, Q, R)
     for(r in 1:R) m2.A.var[,r] <- diag(m$mode2.A.cov[,,r])
-    if(row.share) {
+    if(params$row.share) {
       m$mode2.lambda.scale <- 1/(.5*(rowSums(m$mode2.A.mean^2 + m2.A.var)) + 1/m$m2.beta)
     } else m$mode2.lambda.scale <- 1/(.5*(m$mode2.A.mean^2 + m2.A.var) + 1/m$m2.beta)
     
-    if(verbose) print("Updating projection (A) matrix for mode 2")
+    if(params$verbose) print("Updating projection (A) matrix for mode 2")
     # Update mode2.A covariance parameters. They only rely on X and lambdas
     lambda.exp <- m$mode2.lambda.shape * m$mode2.lambda.scale
     for(r in 1:R) {
-      if(row.share) {
+      if(params$row.share) {
         m$mode2.A.cov[,,r] <- chol2inv(chol(diag(lambda.exp) + (1/m$m2.sigma2) * m$m2Xm2X))
       } else
         m$mode2.A.cov[,,r] <- chol2inv(chol(diag(lambda.exp[,r]) + (1/m$m2.sigma2) * m$m2Xm2X))
@@ -60,7 +55,7 @@ update_mode2_CP <- function(m, d, params) {
     }
   }
   
-  if(verbose) print("Updating latent (H) matrix for mode 2")
+  if(params$verbose) print("Updating latent (H) matrix for mode 2")
   # Update the variance first. sapply vectorizes the updates for each row
   for(r in 1:R) {
     m$mode2.H.var[,r] <- sapply(1:J, function(j) 1/((1/m$sigma2) *

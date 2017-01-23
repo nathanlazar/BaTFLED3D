@@ -2,6 +2,9 @@
 #' 
 #' Model objects are updated in place to avoid memory issues. Nothing is returned.
 #'
+#' @importFrom stats cor
+#' @importFrom graphics plot par
+#'
 #' @export
 #' @param d an input data object created with \code{input_data}
 #' @param m a \code{CP_model} object created with \code{mk_model} 
@@ -25,11 +28,6 @@
 #       What is "scale"? Just scales printed matrices.
 
 train_CP <- function(d, m, new.iter=1, params) {
-  # Make all params available locally
-  for(i in 1:length(params)) {
-    assign(names(params)[i], params[i][[1]])
-  }
-
   # Make a copy of d so it is not changed
   d <- d$clone()
   
@@ -38,22 +36,22 @@ train_CP <- function(d, m, new.iter=1, params) {
                   update_mode2_CP, 
                   update_mode3_CP)
   
-  # If remove.lmt != 0 rows of the A (projection) matrices are removed if the sum
+# If remove.lmt != 0 rows of the A (projection) matrices are removed if the sum
   # of their absolute value drops below remove.lmt.
   # Multiplier is used to avoid underflow when normalizing.
 
   st <- F # Stopping condition
 
-  if((m1.remove.lmt | m2.remove.lmt | m3.remove.lmt) & remove.per)
+  if((params$m1.remove.lmt | params$m2.remove.lmt | params$m3.remove.lmt) & params$remove.per)
     print("Warning: only one of remove.lmt and remove.per should be set.")
-  m$early.stop <- early.stop
+  m$early.stop <- params$early.stop
 
   # Vector to store The lower bound of the log likelihood
   m$lower.bnd <- c(m$lower.bnd, rep(0, new.iter))
 
   # Vectors to store response measures (RMSE, explained variation & Pearson correlation)
   # for training data
-  if(RMSE) {
+  if(params$RMSE) {
     m$RMSE <- c(m$RMSE, rep(0, new.iter))       # RMSE from A matrices
     m$H.RMSE <- c(m$H.RMSE, rep(0, new.iter))   # RMse from H matrices
     m$exp.var <- c(m$exp.var, rep(0, new.iter)) # Explained variance for training data
@@ -62,22 +60,22 @@ train_CP <- function(d, m, new.iter=1, params) {
   }
   
   # Vector to store the elapsed times for each iteration of the model
-  if(time) m$times <- c(m$times, rep(0, new.iter))
+  if(params$time) m$times <- c(m$times, rep(0, new.iter))
 
-  if(verbose) print('** Begining updates **')
+  if(params$verbose) print('** Begining updates **')
   
   # The shape parameters for lambdas are all the same  and the update is only done once
-  if(row.share) {
-    m$mode1.lambda.shape[] <- rep(m$m1.alpha + R/2, nrow(m$mode1.A.mean))
-    m$mode2.lambda.shape[] <- rep(m$m2.alpha + R/2, nrow(m$mode2.A.mean))
-    m$mode3.lambda.shape[] <- rep(m$m3.alpha + R/2, nrow(m$mode3.A.mean))
+  if(params$row.share) {
+    m$mode1.lambda.shape[] <- rep(m$m1.alpha + params$R/2, nrow(m$mode1.A.mean))
+    m$mode2.lambda.shape[] <- rep(m$m2.alpha + params$R/2, nrow(m$mode2.A.mean))
+    m$mode3.lambda.shape[] <- rep(m$m3.alpha + params$R/2, nrow(m$mode3.A.mean))
   } else {
     m$mode1.lambda.shape[,] <- m$m1.alpha + .5
     m$mode2.lambda.shape[,] <- m$m2.alpha + .5
     m$mode3.lambda.shape[,] <- m$m3.alpha + .5
   }
   
-  if(verbose) print('** Begining updates **')
+  if(params$verbose) print('** Begining updates **')
 
   tot.iter <- m$iter + new.iter
   while(m$iter < tot.iter) {
@@ -87,16 +85,16 @@ train_CP <- function(d, m, new.iter=1, params) {
     print(paste('*************** Updating q distributions: round', m$iter, '******************'))
 
     # Start timer
-    if(time) start.time <- proc.time()
+    if(params$time) start.time <- proc.time()
 
     # Remove predictors if the mean of the absolute values of entries in the 
     # row of the projection matrix drops below remove.lmt. 
     # This speeds calculations and may give better predictions
-    remove_preds(m, d, params)
+    # remove_preds(m, d, params)
 
     # Choose which mode to update 
     # update.order <- sample(3,3)
-    for(mode in update.order) up.funs[[mode]](m, d, params)
+    for(mode in params$update.order) up.funs[[mode]](m, d, params)
 
     # update_mode1_CP(m, d, params)
     # update_mode2_CP(m, d, params)
@@ -117,12 +115,12 @@ train_CP <- function(d, m, new.iter=1, params) {
       mode3.X.times.A <- m$mode3.H.mean
     } else mode3.X.times.A <- safe_prod(d$mode3.X, m$mode3.A.mean)
 
-    core <- array(0, dim=c(R,R,R))
-    for(r in 1:R) core[r,r,r] <- 1
+    core <- array(0, dim=c(params$R,params$R,params$R))
+    for(r in 1:params$R) core[r,r,r] <- 1
     m$resp <- mult_3d(core, mode1.X.times.A, mode2.X.times.A, mode3.X.times.A)
 
     # Update the lower bound
-    if(lower.bnd==T) {
+    if(params$lower.bnd==T) {
       m$lower.bnd[m$iter] <- lower_bnd_CP(m, d)
       print(paste('Lower bound =',
         format(m$lower.bnd[m$iter], decimal.mark=".", big.mark=",", nsmall = 1)))
@@ -130,9 +128,9 @@ train_CP <- function(d, m, new.iter=1, params) {
 
     # Update the training RMSEs
     # Update the training performance measures
-    if(RMSE) rmse(m, d, verbose=T)                                      # Prints
-    if(exp.var) m$exp.var[m$iter] <- exp_var(d$resp, m$resp, verbose=T) # Prints
-    if(cor) {
+    if(params$RMSE) rmse(m, d, verbose=T)                               # Prints
+    if(params$exp.var) m$exp.var[m$iter] <- exp_var(d$resp, m$resp, verbose=T) # Prints
+    if(params$cor) {
       m$p.cor[m$iter] <- cor(d$resp, m$resp, use='complete.obs')
       print(sprintf("Pearson correlation: %.4f", m$p.cor[m$iter]))
       m$s.cor[m$iter] <- cor(d$resp, m$resp, use='complete.obs', method='spearman')
@@ -140,17 +138,17 @@ train_CP <- function(d, m, new.iter=1, params) {
     }
 
     # Plot the training predictions and projection matrices
-    if(plot) {
+    if(params$plot) {
       panels <- 1
-      if(1 %in% show.mode) {
+      if(1 %in% params$show.mode) {
         panels <- panels + 1
         if(ncol(d$mode1.X)!=0) panels <- panels + 1
       }
-      if(2 %in% show.mode) {
+      if(2 %in% params$show.mode) {
         panels <- panels + 1
         if(ncol(d$mode2.X)!=0) panels <- panels + 1
       }
-      if(3 %in% show.mode) {
+      if(3 %in% params$show.mode) {
         panels <- panels + 1
         if(ncol(d$mode3.X)!=0) panels <- panels + 1
       }
@@ -158,16 +156,16 @@ train_CP <- function(d, m, new.iter=1, params) {
 
       plot_preds(m$resp, d$resp, main=paste('Round: ', m$iter))
 
-      show_mat(m, d, show.mode)
+      show_mat(m, d, params$show.mode)
     }
 
     # Check early stopping criterion.
     # Stop if the lower bound increases by less than early.stop
-    if(!is.na(m$early.stop) & lower.bnd & (m$iter > 20)) {
-      if(m$lower.bnd[m$iter] < (m$lower.bnd[m$iter-1] + early.stop))  st <- T
+    if(!is.na(m$early.stop) & params$lower.bnd & (m$iter > 20)) {
+      if(m$lower.bnd[m$iter] < (m$lower.bnd[m$iter-1] + m$early.stop))  st <- T
     }
 
-    if(time) m$times[m$iter] <- (proc.time() - start.time)[3]
+    if(params$time) m$times[m$iter] <- (proc.time() - start.time)[3]
 
     if(st) {
       m$lower.bnd <- m$lower.bnd[1:m$iter]

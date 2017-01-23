@@ -3,6 +3,10 @@
 #' Displays a heatmap of a matrix using red and blue colors. Options to scale
 #' and sort as well as any other graphical parameters with ...
 #' 
+#' @importFrom grDevices colorRampPalette
+#' @importFrom stats sd
+#' @importFrom graphics image
+#' 
 #' @export
 #' @param x matrix
 #' @param high string of either 'red' or 'blue' used to show higher values

@@ -3,6 +3,8 @@
 #' This is a little different than a typical ROC curve since any rows of the true matrix
 #' that are non-zero are treated as equal true positives.
 #' 
+#' @importFrom graphics plot abline
+#' 
 #' @export
 #' @param true projection matrix where rows of true predictors have non-zero values
 #' @param pred projection matrix where rows of learned predictors have larger values

@@ -20,15 +20,10 @@
 #' update_core_Tucker(m=toy.model, d=train.data, params=model.params)
 
 update_core_Tucker <- function(m, d, params) {
-  # Make all param variables available locally
-  for(i in 1:length(params)) {
-    assign(names(params)[i], params[i][[1]])
-  }
-  
   # Number of core updates to perform per iteration.
-  if(core.updates == Inf) core.updates <- prod(dim(m$core.mean))
+  if(params$core.updates == Inf) core.updates <- prod(dim(m$core.mean))
   
-  if(verbose) print("Updating core tensor")
+  if(params$verbose) print("Updating core tensor")
   
   I <- dim(d$resp)[1]; J <- dim(d$resp)[2]; K <- dim(d$resp)[3]
   R1 <- dim(m$core.mean)[1]; R2 <- dim(m$core.mean)[2]; R3 <- dim(m$core.mean)[3]

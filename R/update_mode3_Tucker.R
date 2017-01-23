@@ -38,19 +38,19 @@ update_mode3_Tucker <- function(m, d, params) {
   
   # TODO: check this
   if(S != 0) { # If there is no input data, skip updates for lambda and A
-    if(verbose) print("Updating prior lambda vector for mode 3")
+    if(params$verbose) print("Updating prior lambda vector for mode 3")
     
     m3.A.var <- matrix(0, S, R3)
     for(r3 in 1:R3) m3.A.var[,r3] <- diag(m$mode3.A.cov[,,r3])
-    if(row.share) {
+    if(params$row.share) {
       m$mode3.lambda.scale <- 1/(.5*(rowSums(m$mode3.A.mean^2 + m3.A.var)) + 1/m$m3.beta)
     } else m$mode3.lambda.scale <- 1/(.5*(m$mode3.A.mean^2 + m3.A.var) + 1/m$m3.beta)
     
-    if(verbose) print("Updating projection (A) matrix for mode 3")
+    if(params$verbose) print("Updating projection (A) matrix for mode 3")
     # Update mode3.A covariance parameters. They only rely on X and lambdas
     lambda.exp <- m$mode3.lambda.shape * m$mode3.lambda.scale
     for(r3 in 1:R3) {
-      if(row.share) {
+      if(params$row.share) {
         m$mode3.A.cov[,,r3] <- chol2inv(chol(diag(lambda.exp) + (1/m$m3.sigma2) * m$m3Xm3X))
       } else
         m$mode3.A.cov[,,r3] <- chol2inv(chol(diag(lambda.exp[,r3]) + (1/m$m3.sigma2) * m$m3Xm3X))
@@ -58,7 +58,7 @@ update_mode3_Tucker <- function(m, d, params) {
 
     # Update each column of A means
     if(A3.intercept) {
-      if(H3.intercept) {
+      if(params$H3.intercept) {
         for(r3 in 1:R3) m$mode3.A.mean[,r3] <- (1/m$m3.sigma2) * 
             (m$mode3.A.cov[,,r3] %*% t(cbind(1,d$mode3.X)) %*% m$mode3.H.mean[,r3+1])
       } else {
@@ -66,7 +66,7 @@ update_mode3_Tucker <- function(m, d, params) {
             (m$mode3.A.cov[,,r3] %*% t(cbind(1,d$mode3.X)) %*% m$mode3.H.mean[,r3])
       }
     } else {
-      if(H3.intercept) {
+      if(params$H3.intercept) {
         for(r3 in 1:R3) m$mode3.A.mean[,r3] <- (1/m$m3.sigma2) * 
             (m$mode3.A.cov[,,r3] %*% t(d$mode3.X) %*% m$mode3.H.mean[,r3+1])
       } else {
@@ -76,7 +76,7 @@ update_mode3_Tucker <- function(m, d, params) {
     }
   }
   
-  if(verbose) print("Updating latent (H) matrix for mode 3")
+  if(params$verbose) print("Updating latent (H) matrix for mode 3")
   # Update the variance first.
   # Copy data so all of m and d aren't sent out to worker nodes
   mode1.H.mean <- m$mode1.H.mean
@@ -86,7 +86,7 @@ update_mode3_Tucker <- function(m, d, params) {
   sigma2 <- m$sigma2
   m3.sigma2 <- m$m3.sigma2
   
-  if(H3.intercept) {
+  if(params$H3.intercept) {
     m$mode3.H.var[,-1] <- foreach(delta=iterators::iapply(d$delta, 3), .combine='rbind') %:%
       foreach(core.mean=iterators::iapply(m$core.mean[,,-1,drop=F], 3), 
               core.var=iterators::iapply(m$core.var[,,-1,drop=F], 3), .combine='c') %dopar% {
@@ -143,16 +143,19 @@ update_mode3_Tucker <- function(m, d, params) {
   if(S == 0) {
     x_times_a <- matrix(0, K, R3)
   } else x_times_a <- safe_prod(d$mode3.X, m$mode3.A.mean)
-  if(H3.intercept) x_times_a <- cbind(1, x_times_a)
+  if(params$H3.intercept) x_times_a <- cbind(1, x_times_a)
 
   sum0 <- rTensor::ttl(rTensor::as.tensor(m$core.mean), list(m$mode1.H.mean, m$mode2.H.mean), c(1,2))@data
   
   # Update the mean parameters (m$mode3.H.mean)
   core.mean <- m$core.mean
-
   dm <- dimnames(m$mode3.H.mean)
+
+  # These are just to avoid errors when checking build
+  mode3.H.var <- NA; resp <- NA; x_t_a <- NA
+
   # Loop is over samples (K)
-  if(H3.intercept) R3.rng <- 2:core3 else R3.rng <- 1:core3 # Don't update the constant column
+  if(params$H3.intercept) R3.rng <- 2:core3 else R3.rng <- 1:core3 # Don't update the constant column
   m$mode3.H.mean <- foreach(mode3.H.mean = iterators::iter(m$mode3.H.mean, by='row'), 
                             mode3.H.var = iterators::iter(m$mode3.H.var, by='row'),
                             resp = iterators::iapply(d$resp, 3),

@@ -21,8 +21,6 @@
 #' }
 #' 
 #' 
-#' @param d An \code{input_data} object. See \code{input_data}.
-#' @param params A list of parameter values. See \code{get_model_params}.
 #' @method clone() Creates a copy of the object with a new memory space.
 #' @method initialize() Initializes a model with random values.
 #' 
