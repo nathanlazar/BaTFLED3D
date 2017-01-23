@@ -10,7 +10,7 @@
 #' toy <- mk_toy(data.params)
 #' train.data <- input_data$new(mode1.X=toy$mode1.X[,-1],
 #'                              mode2.X=toy$mode2.X[,-1],
-#'                              mode3.X=toy$mode3.X,
+#'                              mode3.X=toy$mode3.X[,-1],
 #'                              resp=toy$resp)
 #' model.params <- get_model_params(c('decomp=CP'))
 #' toy.model <- mk_model(train.data, model.params)
@@ -131,7 +131,7 @@ lower_bnd_CP <- function(m, d) {
     
     Xm3Am3AX <- matrix(0, K, R)
     for(k in 1:K) for(r in 1:R) 
-      Xm3Am3AX[j,r] <- mode3.X[k,,drop=F] %*% 
+      Xm3Am3AX[k,r] <- mode3.X[k,,drop=F] %*% 
         (outer(m$mode3.A.mean[,r], m$mode3.A.mean[,r]) + m$mode3.A.cov[,,r]) %*% t(mode3.X[k,,drop=F])
     
     exp.p.mode3.H <- -.5*K*R * safe_log(2*pi*m$m3.sigma2) - 

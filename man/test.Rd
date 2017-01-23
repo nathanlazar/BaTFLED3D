@@ -19,8 +19,4 @@ An array of predicted responses the same size as \code{m$resp}.
 \description{
 This is just a wrapper that calls test_CP or test_Tucker depending on the type of model provided.
 }
-\examples{
-value
-
-}
 

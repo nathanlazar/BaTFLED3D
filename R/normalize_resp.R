@@ -4,8 +4,6 @@
 #' @param params params object
 #' 
 #' @return normalized array
-#' @examples
-#'
 
 normalize_resp <- function(resp.tens, params) {
   # If params$norm.mode is not null, normalize responses for training

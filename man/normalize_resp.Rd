@@ -17,7 +17,4 @@ normalized array
 \description{
 z-scale responses by params$norm.mode and store means and sds as attributes
 }
-\examples{
-
-}
 

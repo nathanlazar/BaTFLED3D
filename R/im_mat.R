@@ -19,12 +19,12 @@
 #' @return none
 #' 
 #' @examples
-#' im_mat(matrix(1:12, nrow=3, ncol=4), sort=F, scale=F)
-#' im_mat(matrix(1:12, nrow=3, ncol=4), sort=T, scale=F)
-#' im_mat(matrix(1:12, nrow=3, ncol=4), sort=F, scale=T)
-#' im_mat(matrix(1:12, nrow=3, ncol=4), sort=T, scale=T)
+#' im_mat(matrix(1:12, nrow=3, ncol=4), sort=FALSE, scale=FALSE)
+#' im_mat(matrix(1:12, nrow=3, ncol=4), sort=TRUE, scale=FALSE)
+#' im_mat(matrix(1:12, nrow=3, ncol=4), sort=FALSE, scale=TRUE)
+#' im_mat(matrix(1:12, nrow=3, ncol=4), sort=TRUE, scale=TRUE)
 
-im_mat <- function(x, high='red', xaxt='n', yaxt='n', sort=F, scale=F, ballance=F, zlim=NA, ...) {
+im_mat <- function(x, high='red', xaxt='n', yaxt='n', sort=FALSE, scale=FALSE, ballance=FALSE, zlim=NA, ...) {
   # display image of rotated matrix with the option to sort columns by 
   # absolute magnitude
   rwb <- colorRampPalette(c('red', 'white', 'blue'), space='rgb')
@@ -39,16 +39,16 @@ im_mat <- function(x, high='red', xaxt='n', yaxt='n', sort=F, scale=F, ballance=
   }
   
   # Rearrange columns sorted from largest mean value to smallest
-  if(sort==T) {
-    sorted <- sort(apply(x, 2, mean), decreasing=T, index.return=T)
-    x <- x[,sorted$ix,drop=F]
+  if(sort==TRUE) {
+    sorted <- sort(apply(x, 2, mean), decreasing=TRUE, index.return=TRUE)
+    x <- x[,sorted$ix,drop=FALSE]
   }
 
-  # Expand range if ballance = T
+  # Expand range if ballance = TRUE
   if(length(zlim) != 2) {
     if(ballance) {
-      zlim=c(-max(abs(range(x, na.rm=T))), max(abs(range(x, na.rm=T))))
-    } else zlim=range(x, na.rm=T)
+      zlim=c(-max(abs(range(x, na.rm=TRUE))), max(abs(range(x, na.rm=TRUE))))
+    } else zlim=range(x, na.rm=TRUE)
   }
 
   if(high=='blue') 

@@ -2,6 +2,7 @@
 #'
 #' Update is performed in place to avoid memory issues. There is no return value.
 #' 
+#' @importFrom foreach foreach
 #' @importFrom foreach %dopar%
 #' @importFrom foreach %:%
 #' @export

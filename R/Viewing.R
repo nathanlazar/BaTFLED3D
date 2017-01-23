@@ -82,8 +82,8 @@ arrange_ggplot2 <- function(..., nrow=NULL, ncol=NULL, as.table=FALSE) {
   if(is.null(nrow)) { nrow = ceiling(n/ncol)}
   if(is.null(ncol)) { ncol = ceiling(n/nrow)}
   ## NOTE see n2mfrow in grDevices for possible alternative
-  grid.newpage()
-  pushViewport(viewport(layout=grid.layout(nrow,ncol) ) )
+  grid::grid.newpage()
+  grid::pushViewport(grid::viewport(layout=grid::grid.layout(nrow,ncol) ) )
   ii.p <- 1
   for(ii.row in seq(1, nrow)){
     ii.table.row <- ii.row	
