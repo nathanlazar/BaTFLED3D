@@ -156,6 +156,9 @@ Tucker_model <- R6Class("Tucker_model",
          assign(names(params)[i], params[i][[1]])
        }
        
+       # If sigma2=='auto' set it to the square root of the variance of the response data
+       if(sigma2=='auto') sigma2 <- sqrt(var(d$resp, na.rm=T))
+       
        I <- nrow(d$mode1.X); P <- ncol(d$mode1.X)
        J <- nrow(d$mode2.X); Q <- ncol(d$mode2.X)
        K <- nrow(d$mode3.X); S <- ncol(d$mode3.X)

@@ -73,7 +73,8 @@
 #' is no input data, set to one or larger. (0.01)}
 #' \item{m2.sigma2}{Numeric. As above for mode 2. (0.01)}
 #' \item{m3.sigma2}{Numeric. As above for mode 3. (1)}
-#' \item{Sigma2}{Numeric. Variance for the response tensor. (1)}
+#' \item{Sigma2}{Numeric. Variance parameter for the response tensor or 'auto' (default). 
+#' If set to 'auto' then the square-root of the variance of the training responses is used.}
 #' \item{remove.start}{Numeric. The iteration to begin removing predictors if any of 
 #' \code{m1.remove.lmt}, \code{m2.remove.lmt}, \code{m3.remove.lmt} or \code{remove.per}
 #' are set. (Inf)}
@@ -146,7 +147,7 @@ get_model_params <- function(args) {
                  core.3D.alpha=1, core.3D.beta=1,
                  core.updates=Inf,
                  m1.sigma2=.01, m2.sigma2=.01, m3.sigma2=0.01,
-                 sigma2=1, 
+                 sigma2='auto', 
                  remove.start=Inf, 
                  remove.per=0,
                  m1.remove.lmt=0,

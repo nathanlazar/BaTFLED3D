@@ -8,3 +8,4 @@ run_tests.R
 CTRP2results
 scratch_work.R
 summarize_DREAM_preds.R
+inst/doc

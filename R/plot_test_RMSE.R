@@ -8,10 +8,11 @@
 #' @param mean Logical to print horizontal lines for mean predictions
 #' @param main Main title of the plot
 
-plot_test_RMSE <- function(test.results, ylim=NA, mean=F, main='Test RMSEs') {
+plot_test_RMSE <- function(test.results, ylim='default', mean=F, main='Test RMSEs') {
   # Sort by row names so colors are consistent for different response measures
   test.results <- test.results[,sort(names(test.results))]
 
+  if(ylim=='default') ylim <- c(0, 1.5)
   if(is.na(ylim)) 
     ylim=c(0,max(test.results[-1,grepl('RMSE', names(test.results))], na.rm=T))
 

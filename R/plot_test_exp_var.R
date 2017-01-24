@@ -8,12 +8,13 @@
 #' @param mean Logical to plot horizontal lines for mean prediction (FALSE)
 #' @param main Main title of the plot
 
-plot_test_exp_var <- function(test.results, ylim=NA, mean=F, main=NA) {
+plot_test_exp_var <- function(test.results, ylim='default', mean=F, main=NA) {
   # Sort by row names so colors are consistent for different response measures
   test.results <- test.results[,sort(names(test.results))]
   
   exp.var.cols <- grep('exp.var$', names(test.results))
 
+  if(ylim=='default')  ylim=c(-1,1)
   if(is.na(ylim)) 
     ylim=range(test.results[-1,exp.var.cols], na.rm=T)
 

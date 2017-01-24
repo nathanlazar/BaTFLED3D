@@ -10,17 +10,17 @@ The algorithm learns distributions on values in the projection matrices and late
 
 Model diagram
 -------
-![](https://github.com/nathanlazar/BaTFLED3D/blob/master/BaTFLED_model.png)
+![](vignettes/BaTFLED_model.png)
 
 Running BaTFLED on a simulated dataset
 -------
 
-An Rmarkdown document is included [BaTFLED_simulation.Rmd](https://github.com/nathanlazar/BaTFLED3D/blob/master/BaTFLED_simulation.Rmd) which walks through step-by-step the process of creating a simulated dataset and running BaTFLED to learn the responses and select predictors. You can see the results of running this document here: [BaTFLED_simulation.html](https://github.com/nathanlazar/BaTFLED3D/blob/master/BaTFLED_simulation.html).
+Please see the Rmarkdown vignette 'vignettes/BaTFLED3D_vignette.html'.
 
 Installation
 -----------
 
 ```
-install.packages('BaTFLED3D_0.1.4.tar.gz', repos = NULL, type="source")
+install.packages('BaTFLED3D_0.1.5.tar.gz', repos = NULL, type="source")
 library(BaTFLED3D)
 ```

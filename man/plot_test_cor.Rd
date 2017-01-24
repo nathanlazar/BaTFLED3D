@@ -4,7 +4,7 @@
 \alias{plot_test_cor}
 \title{Plot correlation results from test data}
 \usage{
-plot_test_cor(test.results, ylim = NA, mean = F, main = NA,
+plot_test_cor(test.results, ylim = "default", mean = F, main = NA,
   method = "pearson")
 }
 \arguments{

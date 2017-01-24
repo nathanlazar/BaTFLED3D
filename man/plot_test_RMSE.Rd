@@ -4,7 +4,8 @@
 \alias{plot_test_RMSE}
 \title{Plot RMSE results from test data}
 \usage{
-plot_test_RMSE(test.results, ylim = NA, mean = F, main = "Test RMSEs")
+plot_test_RMSE(test.results, ylim = "default", mean = F,
+  main = "Test RMSEs")
 }
 \arguments{
 \item{test.results}{An object created with \code{test_results}}

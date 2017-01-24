@@ -8,6 +8,7 @@
 #' 
 #' @docType class
 #' @importFrom R6 R6Class
+#' @importFrom stats var
 #' @exportClass CP_model
 #' @export CP_model
 #' @format An \code{\link{R6Class}} generator object
@@ -91,6 +92,9 @@ CP_model <- R6Class("CP_model",
         I <- nrow(d$mode1.X); P <- ncol(d$mode1.X)
         J <- nrow(d$mode2.X); Q <- ncol(d$mode2.X)
         K <- nrow(d$mode3.X); S <- ncol(d$mode3.X)
+        
+        # If sigma2=='auto' set it to the square root of the variance of the response data
+        if(sigma2=='auto') sigma2 <- sqrt(var(d$resp, na.rm=T))
   
         # If no names are given for the input matrices, use defaults
         if(is.null(rownames(d$mode1.X))) rownames(d$mode1.X) <- paste0('m1.samp.', 1:I)

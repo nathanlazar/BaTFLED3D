@@ -9,7 +9,7 @@
 #' @param main Main title of the plot
 #' @param method Either 'pearson' or 'spearman' correlations
 
-plot_test_cor <- function(test.results, ylim=NA, mean=F, main=NA, method='pearson') {
+plot_test_cor <- function(test.results, ylim='default', mean=F, main=NA, method='pearson') {
   # Sort by row names so colors are consistent for different response measures
   test.results <- test.results[,sort(names(test.results))]
 
@@ -18,6 +18,7 @@ plot_test_cor <- function(test.results, ylim=NA, mean=F, main=NA, method='pearso
   if(method=='spearman')
     cor.cols <- grep('s.cor$', names(test.results))
 
+  if(ylim=='default') ylim=c(-1, 1)
   if(is.na(ylim))
     ylim=range(test.results[-1,cor.cols], na.rm=T)
   

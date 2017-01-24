@@ -4,7 +4,7 @@
 \alias{plot_test_exp_var}
 \title{Plot explained variance results from test data}
 \usage{
-plot_test_exp_var(test.results, ylim = NA, mean = F, main = NA)
+plot_test_exp_var(test.results, ylim = "default", mean = F, main = NA)
 }
 \arguments{
 \item{test.results}{an object generated with \code{test_results}}
