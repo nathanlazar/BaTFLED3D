@@ -2,18 +2,25 @@
 
 # nathan dot lazar at gmail dot com
 
-# Usage: BaTFLED_run.R <mode1 data> <mode2 data> <mode3 data>
+# Usage: DREAM7_run.R <mode1 data> <mode2 data> <mode3 data>
 #                      <response> 
-#                      <mode1 fold matrix> <mode2 fold matrix> <mode3 fold matrix>
+#                      <mode1 fold matrix> <mode2 fold matrix>
 #                      <output dir>
 #                      <options...>
 
-# The first 8 arguments must be in order
+# The first 7 arguments must be in order
 # The order of the rest of the arguments doesn't mattter and they can be absent
 
 print('Opened file')
 
-library(methods)
+library(foreach)        # For parallel processing in loops
+library(R6)             # For making memory efficent R6 objects
+library(iterators)      # Making iterator objects for efficient parallelization
+library(rTensor)        # Needed for multiplying matrices into tensors (could be removed)
+library(dplyr)          # General data frame manipulation
+library(ggplot2)        # Used for plotting
+library(drc)            # Used for fitting logistic curves
+library(preprocessCore) # Used to quantile normalize columns of input data
 library(BaTFLED3D)      # Note: package must be installed from .tar file
 # library(pryr)           # For monitoring memory usage
 # library(microbenchmark) # For monitoring run time
@@ -29,7 +36,6 @@ args <- commandArgs(TRUE)
 #              '../DREAM7/DREAM7_resp.Rdata',
 #              '../DREAM7/cv_folds_cl_10.Rdata',
 #              '../DREAM7/cv_folds_dr_10.Rdata',
-#              'none',
 #              'DREAM7results/test/',
 #              'decomp=Tucker',
 #              'row.share=F',
@@ -37,7 +43,6 @@ args <- commandArgs(TRUE)
 #              'warm.per=0.05',
 #              'seed=NA',
 #              'multiplier=0',
-#              'normalize.for=mode1',
 #              'quantile=F','scale=all', 'center=F',
 #              'early.stop=NA', 'plot=T', 'verbose=F',
 #              'remove.per=0', 'remove.start=Inf', 
@@ -52,7 +57,7 @@ args <- commandArgs(TRUE)
 #              'core.2D.alpha=1e-8', 'core.2D.beta=1e8',
 #              'core.3D.alpha=1e-12', 'core.3D.beta=1e12',
 #              'm1.sigma2=0.01', 'm2.sigma2=0.01', 'm3.sigma2=1',
-#              'sigma2=auto', 'parallel=T', 'cores=4',
+#              'sigma2=1', 'parallel=T', 'cores=4',
 #              'exp.var=T', 'lower.bnd=T', 'history=F', 'fold=0')
 
 #'../cell_line_drug_datasets/BC_CellLines/DREAM7/Costello2014/norm_mean_tensor.Rdata',
@@ -67,17 +72,15 @@ m3.file <-        args[[3]]
 resp.file <-      args[[4]]
 m1.fold.file <-   args[[5]]
 m2.fold.file <-   args[[6]]
-m3.fold.file <-   args[[7]]
-out.dir <-        paste0(args[[8]], '/')
+out.dir <-        paste0(args[[7]], '/')
 
 # Get parameters
-params <- get_model_params(args[9:length(args)])
+params <- get_model_params(args[8:length(args)])
 
 # Set some defaults 
 reps <- 10; warm.per <- 0.05
 multiplier <- 0; quantile=F; center=F; 
-normalize.for='none'
-scale='no'; squash=Inf; history=F; fold=1
+scale='cont'; squash=Inf; history=F; fold=1
 
 # Override defaults if provided
 if(sum(grepl('^reps=', args)))
@@ -92,8 +95,6 @@ if(sum(grepl('^quantile=', args)))
   quantile <- as.logical(sub('quantile=', '', args[grepl('^quantile=', args)]))
 if(sum(grepl('^center=', args)))
   center <- as.logical(sub('center=', '', args[grepl('^center=', args)]))
-if(sum(grepl('^normalize.for=', args)))
-  normalize.for <- sub('normalize.for=', '', args[grepl('^normalize.for=', args)])
 if(sum(grepl('^scale=', args)))
   scale <- sub('scale=', '', args[grepl('^scale=', args)])
 if(sum(grepl('^squash=', args)))
@@ -110,7 +111,7 @@ if(params$parallel) {
   }
 }
 
-# rm(args)
+rm(args)
 
 # If the output directory doesn't exist, create it
 print(paste('Output directory:', out.dir))
@@ -135,24 +136,23 @@ if(m3.file != 'none') m3.mat <- loadRData(m3.file)
 resp.tens <- loadRData(resp.file)
 
 # Load the matrices with names for cross validation
-if(m1.fold.file != 'none') m1.cv.fold <- loadRData(m1.fold.file)
-if(m2.fold.file != 'none') m2.cv.fold <- loadRData(m2.fold.file)
-if(m3.fold.file != 'none') m3.cv.fold <- loadRData(m3.fold.file)
+m1.cv.fold <- loadRData(m1.fold.file)
+m2.cv.fold <- loadRData(m2.fold.file)
 
 # Make empty matrices if no data is present
 if(m1.file == 'none') {
   m1.mat <- matrix(nrow=dim(resp.tens)[1], ncol=0)
-  dimnames(m1.mat) <- list(dimnames(resp.tens)[[1]])
+  dimnames(m1.mat)[[1]] <- dimnames(resp.tens)[[1]]
 }
 
 if(m2.file == 'none') {
   m2.mat <- matrix(nrow=dim(resp.tens)[2], ncol=0)
-  dimnames(m2.mat) <- list(dimnames(resp.tens)[[2]])
+  dimnames(m2.mat)[[1]] <- dimnames(resp.tens)[[2]]
 }
 
 if(m3.file == 'none') {
   m3.mat <- matrix(nrow=dim(resp.tens)[3], ncol=0)
-  dimnames(m3.mat) <- list(dimnames(resp.tens)[[3]])
+  dimnames(m3.mat)[[1]] <- dimnames(resp.tens)[[3]]
 }
 
 if(multiplier != 0) {
@@ -160,30 +160,21 @@ if(multiplier != 0) {
 }
 
 # Remove rows with no variance or NaNs
-if(ncol(m1.mat))
-  m1.mat <- m1.mat[,(apply(m1.mat, 2, sd) !=0) & !is.na(apply(m1.mat, 2, sd))]
-if(ncol(m2.mat))
-  m2.mat <- m2.mat[,(apply(m2.mat, 2, sd) !=0) & !is.na(apply(m2.mat, 2, sd))]
-if(ncol(m3.mat))
-  m3.mat <- m3.mat[,(apply(m3.mat, 2, sd) !=0) & !is.na(apply(m3.mat, 2, sd))]
+m1.mat <- m1.mat[,(apply(m1.mat, 2, sd) !=0) & !is.na(apply(m1.mat, 2, sd))]
+m2.mat <- m2.mat[,(apply(m2.mat, 2, sd) !=0) & !is.na(apply(m2.mat, 2, sd))]
+m3.mat <- m3.mat[,(apply(m3.mat, 2, sd) !=0) & !is.na(apply(m3.mat, 2, sd))]
 
 # Determine which predictors are binary
-if(ncol(m1.mat))
-  m1.bin <- apply(m1.mat, 2, function(x) identical(range(x), c(0,1)))
-if(ncol(m2.mat))
-  m2.bin <- apply(m2.mat, 2, function(x) identical(range(x), c(0,1)))
-if(ncol(m3.mat))
-  m3.bin <- apply(m3.mat, 2, function(x) identical(range(x), c(0,1)))
+m1.bin <- apply(m1.mat, 2, function(x) identical(range(x), c(0,1)))
+m2.bin <- apply(m2.mat, 2, function(x) identical(range(x), c(0,1)))
+m3.bin <- apply(m3.mat, 2, function(x) identical(range(x), c(0,1)))
 
 # Center non-binary columns
 if(center) {
   # Center non-binary columns of the predictor matrices
-  if(ncol(m1.mat))
-    m1.mat[,!m1.bin] <- scale(m1.mat[,!m1.bin], scale=F, center=T)
-  if(ncol(m2.mat))
-    m2.mat[,!m2.bin] <- scale(m2.mat[,!m2.bin], scale=F, center=T)
-  if(ncol(m3.mat))
-    m3.mat[,!m3.bin] <- scale(m3.mat[,!m3.bin], scale=F, center=T)
+  m1.mat[,!m1.bin] <- scale(m1.mat[,!m1.bin], scale=F, center=T)
+  m2.mat[,!m2.bin] <- scale(m2.mat[,!m2.bin], scale=F, center=T)
+  m3.mat[,!m3.bin] <- scale(m3.mat[,!m3.bin], scale=F, center=T)
 }
 
 # Scale non-binary columns
@@ -194,15 +185,12 @@ if(scale=='all') {
   m3.mat <- scale(m3.mat, center=F, scale=apply(m3.mat, 2, sd, na.rm=T))
   } else if(scale=='cont') {
     # Scale only continuous (non-binary variables)
-    if(ncol(m1.mat))
-      m1.mat[,!m1.bin] <- scale(m1.mat[,!m1.bin], center=F, 
-                                scale=apply(m1.mat[,!m1.bin], 2, sd, na.rm=T))
-    if(ncol(m2.mat))
-      m2.mat[,!m2.bin] <- scale(m2.mat[,!m2.bin], center=F, 
-                                scale=apply(m2.mat[,!m2.bin], 2, sd, na.rm=T))
-    if(ncol(m3.mat))
-      m3.mat[,!m3.bin] <- scale(m3.mat[,!m3.bin], center=F, 
-                                scale=apply(m3.mat[,!m3.bin], 2, sd, na.rm=T))
+    m1.mat[,!m1.bin] <- scale(m1.mat[,!m1.bin], center=F, 
+                              scale=apply(m1.mat[,!m1.bin], 2, sd, na.rm=T))
+    m2.mat[,!m2.bin] <- scale(m2.mat[,!m2.bin], center=F, 
+                              scale=apply(m2.mat[,!m2.bin], 2, sd, na.rm=T))
+    m3.mat[,!m3.bin] <- scale(m3.mat[,!m3.bin], center=F, 
+                              scale=apply(m3.mat[,!m3.bin], 2, sd, na.rm=T))
 }
 
 # squash outliers more than <squash> s.d.
@@ -211,8 +199,6 @@ if(squash) {
   m1.mat[m1.mat > squash] <- squash
   m2.mat[m2.mat < -squash] <- -squash
   m2.mat[m2.mat > squash] <- squash
-  m3.mat[m3.mat < -squash] <- -squash
-  m3.mat[m3.mat > squash] <- squash
 }
 
 # quantile normalize non-binary columns (treat gex and cnv separately)
@@ -223,208 +209,59 @@ if(quantile) {
   if(ncol(m1.mat)) m1.mat[,m1.cnv] <- normalize.quantiles(t(m1.mat[,m1.cnv]))
   if(ncol(m1.mat)) m1.mat[,m1.gex] <- normalize.quantiles(t(m1.mat[,m1.gex]))
   
-  if(ncol(m1.mat)) m1.mat[,!m1.bin] <- normalize.quantiles(t(m1.mat[,!m1.bin]))
+  # if(ncol(m1.mat)) m1.mat[,!m1.bin] <- normalize.quantiles(t(m1.mat[,!m1.bin]))
   if(ncol(m2.mat)) m2.mat[,!m2.bin] <- normalize.quantiles(t(m2.mat[,!m2.bin]))
   if(ncol(m3.mat)) m3.mat[,!m3.bin] <- normalize.quantiles(t(m3.mat[,!m3.bin]))
 }
 
-# Remove the samples for this cross validation fold to be test
+# Remove the mode 1 and mode 2 for this cross validation fold to be test
 # data for this run and make test.data object.
 ###############################################################
-if(exists('m1.cv.fold')) {
-  test.m1 <- m1.cv.fold[fold,]
-  test.m1.mat <- m1.mat[row.names(m1.mat) %in% test.m1,,drop=F]
-  train.m1.mat <- m1.mat[!(row.names(m1.mat) %in% test.m1),,drop=F]
-} else {
-  test.m1.mat <- m1.mat[0,]
-  train.m1.mat <- m1.mat
-}
+test.m1 <- m1.cv.fold[fold,]
+test.m1.mat <- m1.mat[row.names(m1.mat) %in% test.m1,,drop=F]
+train.m1.mat <- m1.mat[!(row.names(m1.mat) %in% test.m1),,drop=F]
 
-if(exists('m2.cv.fold')) {
-  test.m2 <- m2.cv.fold[fold,]
-  test.m2.mat <- m2.mat[row.names(m2.mat) %in% test.m2,,drop=F]
-  train.m2.mat <- m2.mat[!(row.names(m2.mat) %in% test.m2),,drop=F]
-} else {
-  test.m2.mat <- m2.mat[0,]
-  train.m2.mat <- m2.mat
-}
-
-if(exists('m3.cv.fold')) {
-  test.m3 <- m3.cv.fold[fold,]
-  test.m3.mat <- m3.mat[row.names(m3.mat) %in% test.m3,,drop=F]
-  train.m3.mat <- m3.mat[!(row.names(m3.mat) %in% test.m3),,drop=F]
-} else {
-  test.m3.mat <- m3.mat[0,]
-  train.m3.mat <- m3.mat
-}
+test.m2 <- m2.cv.fold[fold,]
+test.m2.mat <- m2.mat[row.names(m2.mat) %in% test.m2,,drop=F]
+train.m2.mat <- m2.mat[!(row.names(m2.mat) %in% test.m2),,drop=F]
 
 # Remove predictors that have no variance in the training data
-# or have only one non-zero value
-if(ncol(train.m1.mat)) {
-  train.m1.mat <- train.m1.mat[,apply(train.m1.mat, 2, function(x) sd(x) > 0)]
-  m1.one <- apply(train.m1.mat, 2, function(x) sum(x==1)==1) &
-    apply(train.m1.mat, 2, function(x) sum(x==0)==(nrow(train.m1.mat)-1))
-  train.m1.mat <- train.m1.mat[,!m1.one]
-  # Also remove these predictors from testing data
-  test.m1.mat <- test.m1.mat[,match(dimnames(train.m1.mat)[[2]], 
-                             dimnames(test.m1.mat)[[2]]),drop=F]
-}
+# or have only one non-zero value (leaves -?- columns)
+train.m1.mat <- train.m1.mat[,apply(train.m1.mat, 2, function(x) sd(x) > 0)]
+m1.one <- apply(train.m1.mat, 2, function(x) sum(x==1)==1) &
+  apply(train.m1.mat, 2, function(x) sum(x==0)==(nrow(train.m1.mat)-1))
+train.m1.mat <- train.m1.mat[,!m1.one]
+# Also remove these predictors from testing data
+test.m1.mat <- test.m1.mat[,match(dimnames(train.m1.mat)[[2]], dimnames(test.m1.mat)[[2]])]
 
 # Same for mode 2
-if(ncol(train.m2.mat)) {
-  train.m2.mat <- train.m2.mat[,apply(train.m2.mat, 2, function(x) sd(x) > 0)]
-  m2.one <- apply(train.m2.mat, 2, function(x) sum(x==1)==1) &
-    apply(train.m2.mat, 2, function(x) sum(x==0)==(nrow(train.m2.mat)-1))
-  train.m2.mat <- train.m2.mat[,!m2.one]
-  # Also remove these predictors from testing data
-  test.m2.mat <- test.m2.mat[,match(dimnames(train.m2.mat)[[2]], 
-                             dimnames(test.m2.mat)[[2]]), drop=F]
-}
-
-# Same for mode 3
-if(ncol(train.m3.mat)) {
-  train.m3.mat <- train.m3.mat[,apply(train.m3.mat, 2, function(x) sd(x) > 0)]
-  m3.one <- apply(train.m3.mat, 2, function(x) sum(x==1)==1) &
-    apply(train.m3.mat, 2, function(x) sum(x==0)==(nrow(train.m3.mat)-1))
-  train.m3.mat <- train.m3.mat[,!m3.one]
-  # Also remove these predictors from testing data
-  test.m3.mat <- test.m3.mat[,match(dimnames(train.m3.mat)[[2]], 
-                             dimnames(test.m3.mat)[[2]]),drop=F]
-}
-
-# Reorder responses to match the inputs
-resp.tens <- resp.tens[match(rownames(m1.mat), dimnames(resp.tens)[[1]], nomatch=0),
-                       match(rownames(m2.mat), dimnames(resp.tens)[[2]], nomatch=0),
-                       match(rownames(m3.mat), dimnames(resp.tens)[[3]], nomatch=0), drop=F]
-
-resp.train <- resp.tens[match(rownames(train.m1.mat), dimnames(resp.tens)[[1]], nomatch=0),
-                        match(rownames(train.m2.mat), dimnames(resp.tens)[[2]], nomatch=0),
-                        match(rownames(train.m3.mat), dimnames(resp.tens)[[3]], nomatch=0), drop=F]
-
-# Normalize for the specific prediction task (mode1, 2 or 3)
-if(normalize.for == 'mode1') norm.dims <- c(2,3)
-if(normalize.for == 'mode2') norm.dims <- c(1,3)
-if(normalize.for == 'mode3') norm.dims <- c(1,2)
-if(normalize.for == 'mode12') norm.dims <- 3
-if(normalize.for == 'mode13') norm.dims <- 2
-if(normalize.for == 'mode23') norm.dims <- 1
-
-if(exists('norm.dims')) {
-  means <- apply(resp.train, norm.dims, mean, na.rm=T)
-  sds <- apply(resp.train, norm.dims, sd, na.rm=T)
-  # If the standard deviation is zero (e.g. drug PS-1145), don't divide by
-  # anything. We don't remove it since something may be learned by other
-  # similar samples.
-  sds[sds==0] <- 1
-  resp.tens <- sweep(resp.tens, norm.dims, means, FUN='-')
-  resp.tens <- sweep(resp.tens, norm.dims, sds, FUN='/')
-} else if(normalize.for == 'mode123') {
-    means <- mean(resp.train, na.rm=T)
-    sds <- sd(resp.train, na.rm=T)
-    resp.tens <- resp.tens - means
-    resp.tens <- resp.tens/sds
-}
-
-# If params$sigma2 is 'auto' set this value to the variance of the response data
-if(params$sigma2=='auto')
-  params$sigma2 <- var(resp.tens, na.rm=T)
+train.m2.mat <- train.m2.mat[,apply(train.m2.mat, 2, function(x) sd(x) > 0)]
+m2.one <- apply(train.m2.mat, 2, function(x) sum(x==1)==1) &
+  apply(train.m2.mat, 2, function(x) sum(x==0)==(nrow(train.m2.mat)-1))
+train.m2.mat <- train.m2.mat[,!m2.one]
+# Also remove these predictors from testing data
+test.m2.mat <- test.m2.mat[,match(dimnames(train.m2.mat)[[2]], dimnames(test.m2.mat)[[2]])]
 
 # Clean up
 # rm(m1.one, m2.one)
-# rm(m1.cv.fold, m2.cv.fold, m3.cv.fold)
+rm(m1.cv.fold, m2.cv.fold)
 
-# Make the response objects
-resp.train <- resp.tens
-
-if(nrow(test.m1.mat)) {
-  resp.train <- resp.train[dimnames(resp.train)[[1]] %in% row.names(train.m1.mat),,,drop=F]
-  resp.test.m1 <- resp.tens
-  resp.test.m1 <- resp.tens[dimnames(resp.tens)[[1]] %in% test.m1,,,drop=F]
-}
-
-if(nrow(test.m2.mat)) {
-  resp.train <- resp.train[,dimnames(resp.train)[[2]] %in% row.names(train.m2.mat),,drop=F]
-  resp.test.m2 <- resp.tens
-  resp.test.m2 <- resp.tens[,dimnames(resp.tens)[[2]] %in% test.m2,,drop=F]
-}
-
-if(nrow(test.m3.mat)) {
-  resp.train <- resp.train[,,dimnames(resp.train)[[3]] %in% row.names(train.m3.mat),drop=F]
-  resp.test.m3 <- resp.tens
-  resp.test.m3 <- resp.tens[,,dimnames(resp.tens)[[3]] %in% test.m3,drop=F]
-}
-
-if(nrow(test.m1.mat) & nrow(test.m2.mat)) {
-  resp.test.m1 <- resp.test.m1[,dimnames(resp.test.m1)[[2]] %in% row.names(train.m2.mat),,drop=F]
-  resp.test.m2 <- resp.test.m2[dimnames(resp.test.m2)[[1]] %in% row.names(train.m1.mat),,,drop=F]
-  resp.test.m1m2 <- resp.tens[dimnames(resp.tens)[[1]] %in% test.m1,
-                              dimnames(resp.tens)[[2]] %in% test.m2,,drop=F]
-}
-
-if(nrow(test.m1.mat) & nrow(test.m3.mat)) {
-  resp.test.m1 <- resp.test.m1[,,dimnames(resp.test.m1)[[3]] %in% row.names(train.m3.mat),drop=F]
-  resp.test.m3 <- resp.test.m3[dimnames(resp.test.m3)[[1]] %in% row.names(train.m1.mat),,,drop=F]
-  resp.test.m1m3 <- resp.tens[dimnames(resp.tens)[[1]] %in% test.m1,,
-                              dimnames(resp.tens)[[3]] %in% test.m3,drop=F]
-}
-
-if(nrow(test.m2.mat) & nrow(test.m3.mat)) {
-  resp.test.m2 <- resp.test.m2[,,dimnames(resp.test.m2)[[3]] %in% row.names(train.m3.mat),drop=F]
-  resp.test.m3 <- resp.test.m3[,dimnames(resp.test.m3)[[2]] %in% row.names(train.m2.mat),,drop=F]
-  resp.test.m2m3 <- resp.tens[,dimnames(resp.tens)[[2]] %in% test.m2,
-                              dimnames(resp.tens)[[3]] %in% test.m3,drop=F]
-}
-
-if(nrow(test.m1.mat) & nrow(test.m2.mat) & nrow(test.m3.mat)) {
-  resp.test.m1m2 <- resp.test.m1m2[,,dimnames(resp.test.m1m2)[[3]] %in% row.names(train.m3.mat),drop=F]
-  resp.test.m1m3 <- resp.test.m1m3[,dimnames(resp.test.m1m3)[[2]] %in% row.names(train.m2.mat),,drop=F]
-  resp.test.m2m3 <- resp.test.m2m3[dimnames(resp.test.m2m3)[[1]] %in% row.names(train.m1.mat),,,drop=F]
-  resp.test.m1m2m3 <- resp.tens[dimnames(resp.tens)[[1]] %in% row.names(test.m1.mat),
-                                dimnames(resp.tens)[[2]] %in% row.names(test.m2.mat),
-                                dimnames(resp.tens)[[3]] %in% row.names(test.m3.mat),drop=F]
-}
-
-# REMOVE
-# resp.train <- resp.tens[dimnames(resp.tens)[[1]] %in% row.names(train.m1.mat),
-#                         dimnames(resp.tens)[[2]] %in% row.names(train.m2.mat),,drop=F]
-# resp.test.m1 <- resp.tens[dimnames(resp.tens)[[1]] %in% test.m1,
-#                           dimnames(resp.tens)[[2]] %in% row.names(train.m2.mat),,drop=F]
-# resp.test.m2 <- resp.tens[dimnames(resp.tens)[[1]] %in% row.names(train.m1.mat),
-#                           dimnames(resp.tens)[[2]] %in% test.m2,,drop=F]
-# resp.test.m1m2 <- resp.tens[dimnames(resp.tens)[[1]] %in% test.m1,
-#                             dimnames(resp.tens)[[2]] %in% test.m2,,drop=F]
-# REMOVE
+resp.train <- resp.tens[dimnames(resp.tens)[[1]] %in% row.names(train.m1.mat),
+                        dimnames(resp.tens)[[2]] %in% row.names(train.m2.mat),,drop=F]
+resp.test.m1 <- resp.tens[dimnames(resp.tens)[[1]] %in% test.m1,
+                          dimnames(resp.tens)[[2]] %in% row.names(train.m2.mat),,drop=F]
+resp.test.m2 <- resp.tens[dimnames(resp.tens)[[1]] %in% row.names(train.m1.mat),
+                          dimnames(resp.tens)[[2]] %in% test.m2,,drop=F]
+resp.test.m1m2 <- resp.tens[dimnames(resp.tens)[[1]] %in% test.m1,
+                            dimnames(resp.tens)[[2]] %in% test.m2,,drop=F]
 
 # Remove warm.per percent of training responses for warm prediction
+# Note: 12.75% of training responses are already missing due to incomplete data
 all.resp.train <- resp.train   # Stores responses before warms removed
-
 if(warm.per > 0) {
-  I <- dim(resp.train)[1]
-  J <- dim(resp.train)[2]
-  K <- dim(resp.train)[3]
-  # If all modes are different, assume the third mode is dose and remove 
-  # warm data across all doses
-  if((m1.file != m2.file) & (m1.file != m3.file) & (m2.file != m3.file)) {0
-    mask <- sample(I*J, round(warm.per*I*J))
-    for(k in 1:K) 
-      resp.train[,,k][mask] <- NA
-  } 
-  # otherwise remove randomly but the same for matching modes
-  if(m1.file == m2.file) {
-    mask <- sample(I*K, (round(warm.per*I*K)))
-    for(m in mask) {
-      i <- m %% I + 1
-      k <- (m-1) %/% I +1
-      resp.train[i,i,k] <- NA
-    }
-  }
-  if(m2.file == m3.file) {
-    mask <- sample(I*J, (round(warm.per*I*J)))
-    for(m in mask) {
-      i <- m %% I + 1
-      j <- (m-1) %/% I +1
-    resp.train[i,j,j] <- NA
-    }
+  mask <- sample(prod(dim(resp.train)[1:2]), round(warm.per*prod(dim(resp.train)[1:2])))
+  for(i in 1:dim(resp.train)[3]) {
+    resp.train[,,i][mask] <- NA
   }
 }
 
@@ -435,84 +272,44 @@ m2.sds <- apply(resp.train, c(1,3), sd, na.rm=T)
 m3.means <- apply(resp.train, c(1,2), mean, na.rm=T)
 m3.sds <- apply(resp.train, c(1,2), sd, na.rm=T)
 
+# Clean up
+rm(resp.tens)
+
 print(paste0(round(sum(is.na(resp.train))/prod(dim(resp.train))*100, 2),
             "% of responses are missing, ",
             round(sum(is.na(resp.train) & !is.na(all.resp.train))/prod(dim(resp.train))*100,2),
             "% are used for warm predictions"))
 
 # Make the training data object (input_data_3d):
-if(!exists('train.m1.mat')) train.m1.mat <- m1.mat
-if(!exists('train.m2.mat')) train.m2.mat <- m2.mat
-if(!exists('train.m3.mat')) train.m3.mat <- m3.mat
-
-train.data <- input_data$new(mode1.X=train.m1.mat, 
+train.data <- input_data$new(mode1.X=train.m1.mat,
                              mode2.X=train.m2.mat,
-                             mode3.X=train.m3.mat, 
+                             mode3.X=m3.mat,
                              resp=resp.train)
 
 # Make the testing data objects (input_data_3d):
-if(nrow(test.m1.mat)) {
-  test.data.m1 <- input_data$new(mode1.X=test.m1.mat,
-                                 mode2.X=train.m2.mat,
-                                 mode3.X=train.m3.mat,
-                                 resp=resp.test.m1)
-} else test.data.m1 <- numeric(0)
-
-if(nrow(test.m2.mat)) {
-  test.data.m2 <- input_data$new(mode1.X=train.m1.mat,
+test.data.m1 <- input_data$new(mode1.X=test.m1.mat,
+                               mode2.X=train.m2.mat,
+                               mode3.X=m3.mat,
+                               resp=resp.test.m1)
+test.data.m2 <- input_data$new(mode1.X=train.m1.mat,
+                               mode2.X=test.m2.mat,
+                               mode3.X=m3.mat,
+                               resp=resp.test.m2)
+test.data.m1m2 <- input_data$new(mode1.X=test.m1.mat,
                                  mode2.X=test.m2.mat,
-                                 mode3.X=train.m3.mat,
-                                 resp=resp.test.m2)
-} else test.data.m2 <- numeric(0)
+                                 mode3.X=m3.mat,
+                                 resp=resp.test.m1m2)
 
-if(nrow(test.m3.mat)) {
-  test.data.m3 <- input_data$new(mode1.X=train.m1.mat,
-                                 mode2.X=train.m2.mat,
-                                 mode3.X=test.m3.mat,
-                                 resp=resp.test.m3)
-} else test.data.m3 <- numeric(0)
-
-if(nrow(test.m1.mat) & nrow(test.m2.mat)) {
-  test.data.m1m2 <- input_data$new(mode1.X=test.m1.mat,
-                                   mode2.X=test.m2.mat,
-                                   mode3.X=train.m3.mat,
-                                   resp=resp.test.m1m2)
-} else test.data.m1m2 <- numeric(0)
-
-if(nrow(test.m1.mat) & nrow(test.m3.mat)) {
-  test.data.m1m3 <- input_data$new(mode1.X=test.m1.mat,
-                                   mode2.X=train.m2.mat,
-                                   mode3.X=test.m3.mat,
-                                   resp=resp.test.m1m3)
-} else test.data.m1m3 <- numeric(0)
-
-if(nrow(test.m2.mat) & nrow(test.m3.mat)) {
-  test.data.m2m3 <- input_data$new(mode1.X=train.m1.mat,
-                                   mode2.X=test.m2.mat,
-                                   mode3.X=test.m3.mat,
-                                   resp=resp.test.m2m3)
-} else test.data.m2m3 <- numeric(0)
-
-if(nrow(test.m1.mat) & nrow(test.m2.mat) & nrow(test.m3.mat)) {
-  test.data.m1m2m3 <- input_data$new(mode1.X=test.m1.mat,
-                                     mode2.X=test.m2.mat,
-                                     mode3.X=test.m3.mat,
-                                     resp=resp.test.m1m2m3)
-} else test.data.m1m2m3 <- numeric(0)
+# Clean up:
+rm(train.m1.mat, train.m2.mat, test.m1.mat, test.m2.mat, resp.train, 
+   resp.test.m1, resp.test.m2, resp.test.m1m2, m1.mat, m2.mat, m3.mat)
 
 print(sprintf('BaTFLED is being trained with %d mode1, %d mode2 and %d mode3 values.',
               dim(train.data$resp)[1], dim(train.data$resp)[2], dim(train.data$resp)[3]))
 print(sprintf('Cold start predictions will be made for %d mode1 %d mode2 and %d mode3 values,',
-              dim(resp.tens)[[1]] - dim(resp.train)[[1]],
-              dim(resp.tens)[[2]] - dim(resp.train)[[2]],
-              dim(resp.tens)[[3]] - dim(resp.train)[[3]]))
+              dim(test.data.m1m2$resp)[1], dim(test.data.m1m2$resp)[2], dim(test.data.m1m2$resp)[3]))
 print(sprintf('using %d mode 1 predictors, %d mode 2 and %d mode3 predictors.',
-              ncol(m1.mat), ncol(m2.mat), ncol(m3.mat)))
-
-# Clean up:
-# rm(train.m1.mat, train.m2.mat, train.m3.mat, test.m1.mat, test.m2.mat, test.m3.mat, resp.train, 
-#    resp.test.m1, resp.test.m2, resp.test.m3, resp.test.m1m2, resp.test.m1m3, resp.test.m2m3,
-#    resp.test.m1m2m3, m1.mat, m2.mat, m3.mat, resp.tens)
+              dim(train.data$mode1.X)[2], dim(train.data$mode2.X)[2], dim(train.data$mode3.X)[2]))
 
 # Make the factorization model object (either CP or Tucker)
 if(params$decomp=='CP') model <- CP_model$new(d=train.data, params=params)
@@ -531,10 +328,10 @@ if(history) out <- file(paste0(out.dir, 'training_models.serialize'), "w")
 # Set up backend for parallel execution
 if(params$parallel) {
   if(.Platform$OS.type == "windows") {
-    clust <- parallel::makeCluster(params$cores)
-    doParallel::registerDoParallel(clust)
+    clust <- makeCluster(params$cores)
+    registerDoParallel(clust)
   } else {
-    doMC::registerDoMC(params$cores)
+    registerDoMC(params$cores)
   }
 }
 
@@ -546,7 +343,6 @@ test.results <- numeric(0)
 warm.resp <- all.resp.train[is.na(train.data$resp)]
 
 trained <- model$clone()
-save.image(paste0(out.dir, 'image.Rdata'))
 
 for(i in (trained$iter+1):reps) {
   train(d=train.data, m=trained, new.iter=1, params=params)
@@ -557,9 +353,7 @@ for(i in (trained$iter+1):reps) {
   # Get cold results
   test.results <- test_results(m=trained, d=train.data, test.results=test.results,
                                warm.resp=warm.resp, test.m1=test.data.m1, 
-                               test.m2=test.data.m2, test.m3=test.data.m3,
-                               test.m1m2=test.data.m1m2, test.m1m3=test.data.m1m3,
-                               test.m2m3=test.data.m2m3, test.m1m2m3=test.data.m1m2m3)
+                               test.m2=test.data.m2, test.m1m2=test.data.m1m2)
   
   # Save every 10 iterations
   if((i %% 10) ==0) save.image(paste0(out.dir, 'image.Rdata'))
@@ -578,34 +372,15 @@ save.image(paste0(out.dir, 'image.Rdata'))
 # Make a tensor of the means for each value of mode2 & mode3 for comparisons
 train.means <- train.data$resp
 for(i in 1:dim(train.data$resp)[1]) train.means[i,,] <- m1.means
-if(length(test.data.m1)) {
-  m1.test.means <- test.data.m1$resp
-  for(i in 1:dim(test.data.m1$resp)[1]) m1.test.means[i,,] <- m1.means
-}
-if(length(test.data.m2)) {
-  m2.test.means <- test.data.m2$resp
-  for(j in 1:dim(test.data.m2$resp)[2]) m2.test.means[,j,] <- m2.means
-}
-if(length(test.data.m3)) {
-  m3.test.means <- test.data.m3$resp
-  for(k in 1:dim(test.data.m3$resp)[3]) m3.test.means[,,k] <- m3.means
-}
-if(length(test.data.m1m2)) {
-  m1m2.test.means <- array(0, dim=dim(test.data.m1m2$resp))
-  m1m2.test.means <- apply(train.data$resp, 3, mean, na.rm=T)
-}
-if(length(test.data.m1m3)) {
-  m1m3.test.means <- array(0, dim=dim(test.data.m1m3$resp))
-  m1m3.test.means <- apply(train.data$resp, 2, mean, na.rm=T)
-}
-if(length(test.data.m2m3)) {
-  m2m3.test.means <- array(0, dim=dim(test.data.m2m3$resp))
-  m2m3.test.means <- apply(train.data$resp, 1, mean, na.rm=T)
-}
-if(length(test.data.m1m2m3)) {
-  m1m2m3.test.means <- array(0, dim=dim(test.data.m1m2m3$resp))
-  m1m2m3.test.means[,,] <- mean(train.data$resp, na.rm=T)
-}
+m1.test.means <- test.data.m1$resp
+for(i in 1:dim(test.data.m1$resp)[1]) m1.test.means[i,,] <- m1.means
+m2.test.means <- test.data.m2$resp
+for(j in 1:dim(test.data.m2$resp)[2]) m2.test.means[,j,] <- m2.means
+m1m2.test.means <- array(0, dim=dim(test.data.m1m2$resp))
+m1m2.means <- apply(train.data$resp, 3, mean, na.rm=T)
+for(i in 1:dim(test.data.m1m2$resp)[1]) 
+  for(j in 1:dim(test.data.m1m2$resp)[2]) 
+    m1m2.test.means[i,j,] <- m1m2.means
 
 # Calculate predictions
 warm.preds <- trained$resp[is.na(train.data$resp)]
@@ -614,42 +389,15 @@ warm.mean.preds <- train.means[is.na(train.data$resp)]
 warm.mean.exp.var <- exp_var(warm.resp, warm.mean.preds)
 warm.mean.RMSE <- sqrt(mean((warm.resp-warm.mean.preds)^2, na.rm=T))/sd(train.data$resp, na.rm=T)
 
-if(length(test.data.m1)) {
-  m1.cold.preds <- test(d=test.data.m1, m=trained)
-  m1.mean.RMSE <- sqrt(mean((test.data.m1$resp-m1.test.means)^2, na.rm=T))/sd(train.data$resp, na.rm=T)
-  m1.mean.exp.var <- exp_var(test.data.m1$resp, m1.test.means)
-}
-if(length(test.data.m2)) {
-  m2.cold.preds <- test(d=test.data.m2, m=trained)
-  m2.mean.RMSE <- sqrt(mean((test.data.m2$resp-m2.test.means)^2, na.rm=T))/sd(train.data$resp, na.rm=T)
-  m2.mean.exp.var <- exp_var(test.data.m2$resp, m2.test.means)
-}
-if(length(test.data.m3)) {
-  m3.cold.preds <- test(d=test.data.m3, m=trained)
-  m3.mean.RMSE <- sqrt(mean((test.data.m3$resp-m3.test.means)^2, na.rm=T))/sd(train.data$resp, na.rm=T)
-  m3.mean.exp.var <- exp_var(test.data.m3$resp, m3.test.means)
-}
-if(length(test.data.m1m2)) {
-  m1m2.cold.preds <- test(d=test.data.m1m2, m=trained)
-  m1m2.mean.RMSE <- sqrt(mean((test.data.m1m2$resp-m1m2.test.means)^2, na.rm=T))/sd(train.data$resp, na.rm=T)
-  m1m2.mean.exp.var <- exp_var(test.data.m1m2$resp, m1m2.test.means)
-}
-if(length(test.data.m1m3)) {
-  m1m3.cold.preds <- test(d=test.data.m1m3, m=trained)
-  m1m3.mean.RMSE <- sqrt(mean((test.data.m1m3$resp-m1m3.test.means)^2, na.rm=T))/sd(train.data$resp, na.rm=T)
-  m1m3.mean.exp.var <- exp_var(test.data.m1m3$resp, m1m3.test.means)
-}
-if(length(test.data.m2m3)) {
-  m2m3.cold.preds <- test(d=test.data.m2m3, m=trained)
-  m2m3.mean.RMSE <- sqrt(mean((test.data.m2m3$resp-m2m3.test.means)^2, na.rm=T))/sd(train.data$resp, na.rm=T)
-  m2m3.mean.exp.var <- exp_var(test.data.m2m3$resp, m2m3.test.means)
-}
-if(length(test.data.m1m2m3)) {
-  m1m2m3.cold.preds <- test(d=test.data.m1m2m3, m=trained)
-  m1m2m3.mean.RMSE <- sqrt(mean((test.data.m1m2m3$resp-m1m2m3.test.means)^2, na.rm=T))/sd(train.data$resp, na.rm=T)
-  m1m2m3.mean.exp.var <- exp_var(test.data.m1m2m3$resp, m1m2m3.test.means)
-}
-
+m1.cold.preds <- test(d=test.data.m1, m=trained)
+m1.mean.RMSE <- sqrt(mean((test.data.m1$resp-m1.test.means)^2, na.rm=T))/sd(train.data$resp, na.rm=T)
+m1.mean.exp.var <- exp_var(test.data.m1$resp, m1.test.means)
+m2.cold.preds <- test(d=test.data.m2, m=trained)
+m2.mean.RMSE <- sqrt(mean((test.data.m2$resp-m2.test.means)^2, na.rm=T))/sd(train.data$resp, na.rm=T)
+m2.mean.exp.var <- exp_var(test.data.m2$resp, m2.test.means)
+m1m2.cold.preds <- test(d=test.data.m1m2, m=trained)
+m1m2.mean.RMSE <- sqrt(mean((test.data.m1m2$resp-m1m2.test.means)^2, na.rm=T))/sd(train.data$resp, na.rm=T)
+m1m2.mean.exp.var <- exp_var(test.data.m1m2$resp, m1m2.test.means)
 warm.mean.exp.var <- exp_var(warm.resp, warm.mean.preds)
 
 # Examine the fit.
@@ -668,38 +416,21 @@ dev.off()
 pdf(paste0(out.dir, 'training_RMSEs.pdf'))
 par(mfrow=c(1,1))
 plot_test_RMSE(test.results, main="Test RMSEs", mean=T)
-abline(h=warm.mean.RMSE, col='black', lty=2, lwd=2)
-if(exists('m1.mean.RMSE'))
-  abline(h=m1.mean.RMSE, col='red', lty=2, lwd=2)
-if(exists('m2.mean.RMSE'))
-  abline(h=m2.mean.RMSE, col='blue', lty=2, lwd=2)
-if(exists('m3.mean.RMSE'))
-  abline(h=m2.mean.RMSE, col='yellow', lty=2, lwd=2)
-if(exists('m1m2.mean.RMSE'))
-  abline(h=m1m2.mean.RMSE, col='purple', lty=3, lwd=2)
-if(exists('m1m3.mean.RMSE'))
-  abline(h=m1m3.mean.RMSE, col='orange', lty=3, lwd=2)
-if(exists('m2m3.mean.RMSE'))
-  abline(h=m2m3.mean.RMSE, col='green', lty=3, lwd=2)
-if(exists('m1m2m3.mean.RMSE'))
-  abline(h=m1m2m3.mean.RMSE, col='brown', lty=3, lwd=2)
+abline(h=warm.mean.RMSE, col='red', lty=2, lwd=2)
+abline(h=m1.mean.RMSE, col='blue', lty=2, lwd=2)
+abline(h=m2.mean.RMSE, col='green', lty=2, lwd=2)
+abline(h=m1m2.mean.RMSE, col='purple', lty=2, lwd=2)
 dev.off()
 
-save.image(paste0(out.dir, 'image.Rdata'))
-
-## TODO: add in mode3 and combinations
 pdf(paste0(out.dir, 'training_exp_var.pdf'))
 plot_test_exp_var(test.results, mean=T,
      main=sprintf('Warm max at %.0f, cold mode 1 max at %d \n Cold mode 2 max at %d Both cold max at %d',
                   which.max(test.results$warm.exp.var), which.max(test.results$m1.exp.var),
                   which.max(test.results$m2.exp.var), which.max(test.results$m1m2.exp.var)))
 abline(h=warm.mean.exp.var, col='red', lty=2, lwd=2)
-if(exists('m1.mean.exp.var'))
-  abline(h=m1.mean.exp.var, col='blue', lty=2, lwd=2)
-if(exists('m2.mean.exp.var'))
-  abline(h=m2.mean.exp.var, col='green', lty=2, lwd=2)
-if(exists('m1m2.mean.exp.var'))
-  abline(h=m1m2.mean.exp.var, col='purple', lty=2, lwd=2)
+abline(h=m1.mean.exp.var, col='blue', lty=2, lwd=2)
+abline(h=m2.mean.exp.var, col='green', lty=2, lwd=2)
+abline(h=m1m2.mean.exp.var, col='purple', lty=2, lwd=2)
 dev.off()
 
 # Predictors

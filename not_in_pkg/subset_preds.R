@@ -15,12 +15,11 @@
 #              '../CTRP2/CTRP2_dr_train.Rdata',
 #              'none', '0.95', '10', 'union', '../CTRP2/top5')
 
-.libPaths("/home/users/lazar/R/x86_64-redhat-linux-gnu-library/3.2")
-
 library(dplyr)
 library(methods)
 library(R6)
-devtools::document()
+library(BaTFLED3D)
+# devtools::document()
 
 ########################################################
 # Functions

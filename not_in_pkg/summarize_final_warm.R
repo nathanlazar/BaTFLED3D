@@ -19,18 +19,6 @@ core.rem.cut <- 1e-3
 #############################################################
 rmse <- function(obs, pred) sqrt(mean((obs-pred)^2,na.rm=T))
 
-p_cor <- function(obs, pred) {
-  if(!is.na(obs) & !is.na(pred)) {
-    return(cor(obs, pred, use='complete.obs'))
-  } else return(NA)
-}
-
-s_cor <- function(obs, pred) {
-  if(!is.na(obs) & !is.na(pred)) {
-    return(cor(obs, pred, method='spearman', use='complete.obs'))
-  } else return(NA)
-}
-
 # Read in a file to get the number of iterations
 get_iters <- function(f1) {
   load(f1)
@@ -49,62 +37,89 @@ loadData <- function(f, results){
   stddev <- sd(train.data$resp, na.rm=T)
 
   # Make a tensor of the means for each value of mode2 & mode3 for comparisons
-  I <- dim(train.data$resp)[1]
-  J <- dim(train.data$resp)[2]
-  K <- dim(train.data$resp)[3]
-
-  m1.means <- apply(train.data$resp, c(2,3), mean, na.rm=T)
-  m2.means <- apply(train.data$resp, c(1,3), mean, na.rm=T)
-  m3.means <- apply(train.data$resp, c(1,2), mean, na.rm=T)
-  m1m2.means <- apply(train.data$resp, 3, mean, na.rm=T)
-  m1m3.means <- apply(train.data$resp, 2, mean, na.rm=T)
-  m2m3.means <- apply(train.data$resp, 1, mean, na.rm=T)
-
+  # TODO: Add stuff for m3
   m1.mean.tens <- train.data$resp
   m2.mean.tens <- train.data$resp
-  m3.mean.tens <- train.data$resp
   m1m2.mean.tens <- train.data$resp
-  m1m3.mean.tens <- train.data$resp
-  m2m3.mean.tens <- train.data$resp
-  m1m2m3.mean.tens <- train.data$resp
-  for(i in 1:I) m1.mean.tens[i,,] <- m1.means
-  for(j in 1:J) m2.mean.tens[,j,] <- m2.means
-  for(k in 1:K) m3.mean.tens[,,k] <- m3.means
-  for(i in 1:I) for(j in 1:J) m1m2.mean.tens[i,j,] <- m1m2.means
-  for(i in 1:I) for(k in 1:K) m1m3.mean.tens[i,,k] <- m1m3.means
-  for(j in 1:J) for(k in 1:K) m2m3.mean.tens[,j,k] <- m2m3.means
-  m1m2m3.mean.tens[,,] <- mean(train.data$resp, na.rm=T)
+  for(i in 1:dim(m1.mean.tens)[1]) m1.mean.tens[i,,] <- m1.means
+  for(j in 1:dim(m2.mean.tens)[2]) m2.mean.tens[,j,] <- m2.means
+  for(k in 1:dim(m1m2.mean.tens)[3]) m1m2.mean.tens[,,k] <- m3.means
 
-  mean.tens.list <- list(m1=m1.mean.tens, m2=m2.mean.tens, m3=m3.mean.tens,
-                         m1m2=m1m2.mean.tens, m1m3=m1m3.mean.tens, m2m3=m2m3.mean.tens, 
-                         m1m2m3=m1m2m3.mean.tens)
+  results$mean['RMSE', 'train.m1', fold] <- rmse(train.data$resp, m1.mean.tens)/stddev
+  results$mean['RMSE', 'train.m2', fold] <- rmse(train.data$resp, m2.mean.tens)/stddev
+  results$mean['RMSE', 'train.m1m2', fold] <- rmse(train.data$resp, m1m2.mean.tens)/stddev
+  results$mean['RMSE', 'warm.m1', fold] <- rmse(all.resp.train[is.na(train.data$resp)],
+    m1.mean.tens[is.na(train.data$resp)])/stddev
+  results$mean['RMSE', 'warm.m2', fold] <- rmse(all.resp.train[is.na(train.data$resp)],
+    m2.mean.tens[is.na(train.data$resp)])/stddev
+  results$mean['RMSE', 'warm.m1m2', fold] <- rmse(all.resp.train[is.na(train.data$resp)], 
+    m1m2.mean.tens[is.na(train.data$resp)])/stddev
+  if(exists('test.data.m1'))
+    results$mean['RMSE', 'm1', fold] <- rmse(test.data.m1$resp,
+      m1.mean.tens[1:dim(test.data.m1$resp)[1],,])/stddev
+  if(exists('test.data.m2'))
+    results$mean['RMSE', 'm2', fold] <- rmse(test.data.m2$resp,
+      m2.mean.tens[,1:dim(test.data.m2$resp)[2],])/stddev
+  if(exists('test.data.m1m2'))
+    results$mean['RMSE', 'm1m2', fold] <- rmse(test.data.m1m2$resp,
+      m1m2.mean.tens[1:dim(test.data.m1m2$resp)[1], 1:dim(test.data.m1m2$resp)[2],])/stddev
 
-  fns <- list(RMSE=rmse, exp.var=exp_var, p.cor=p_cor, s.cor=s_cor)
+  results$mean['exp.var', 'train.m1', fold] <- exp_var(train.data$resp, m1.mean.tens)
+  results$mean['exp.var', 'train.m2', fold] <- exp_var(train.data$resp, m2.mean.tens)
+  results$mean['exp.var', 'train.m1m2', fold] <- exp_var(train.data$resp, m1m2.mean.tens)
+  results$mean['exp.var', 'warm.m1', fold] <- exp_var(all.resp.train[is.na(train.data$resp)],
+    m1.mean.tens[is.na(train.data$resp)])
+  results$mean['exp.var', 'warm.m2', fold] <- exp_var(all.resp.train[is.na(train.data$resp)],
+    m2.mean.tens[is.na(train.data$resp)])
+  results$mean['exp.var', 'warm.m1m2', fold] <- exp_var(all.resp.train[is.na(train.data$resp)], 
+    m1m2.mean.tens[is.na(train.data$resp)])
+  if(exists('test.data.m1'))
+    results$mean['exp.var', 'm1', fold] <- exp_var(test.data.m1$resp,
+      m1.mean.tens[1:dim(test.data.m1$resp)[1],,])
+  if(exists('test.data.m2'))
+    results$mean['exp.var', 'm2', fold] <- exp_var(test.data.m2$resp,
+      m2.mean.tens[,1:dim(test.data.m2$resp)[2],])
+  if(exists('test.data.m1m2'))
+    results$mean['exp.var', 'm1m2', fold] <- exp_var(test.data.m1m2$resp,
+      m1m2.mean.tens[1:dim(test.data.m1m2$resp)[1], 1:dim(test.data.m1m2$resp)[2],])
 
-  for(m in 1:length(fns)) {
-    fn <- fns[[m]]
-    name <- names(fns)[m]
-    # Get results for training data
-    for(mode in c('m1','m2','m3','m1m2','m1m3','m2m3','m1m2m3'))
-      results$mean[name, paste0('train.', mode), fold] <- 
-        fn(train.data$resp, mean.tens.list[[mode]])/stddev
+  results$mean['p.cor', 'train.m1', fold] <- cor(train.data$resp, m1.mean.tens, use='complete.obs')
+  results$mean['p.cor', 'train.m2', fold] <- cor(train.data$resp, m2.mean.tens, use='complete.obs')
+  results$mean['p.cor', 'train.m1m2', fold] <- cor(train.data$resp, m1m2.mean.tens, use='complete.obs')
+  results$mean['p.cor', 'warm.m1', fold] <- cor(all.resp.train[is.na(train.data$resp)],
+    m1.mean.tens[is.na(train.data$resp)], use='complete.obs')
+  results$mean['p.cor', 'warm.m2', fold] <- cor(all.resp.train[is.na(train.data$resp)],
+    m2.mean.tens[is.na(train.data$resp)], use='complete.obs')
+  results$mean['p.cor', 'warm.m1m2', fold] <- tryCatch(cor(all.resp.train[is.na(train.data$resp)], 
+    m1m2.mean.tens[is.na(train.data$resp)], use='complete.obs'), error=function(e) NA)
+  if(exists('test.data.m1'))
+    results$mean['p.cor', 'm1', fold] <- cor(test.data.m1$resp,
+      m1.mean.tens[1:dim(test.data.m1$resp)[1],,], use='complete.obs')
+  if(exists('test.data.m2'))
+    results$mean['p.cor', 'm2', fold] <- cor(test.data.m2$resp,
+      m2.mean.tens[,1:dim(test.data.m2$resp)[2],], use='complete.obs')
+  if(exists('test.data.m1m2'))
+    results$mean['p.cor', 'm1m2', fold] <- cor(test.data.m1m2$resp,
+      m1m2.mean.tens[1:dim(test.data.m1m2$resp)[1], 1:dim(test.data.m1m2$resp)[2],], use='complete.obs')
   
-    # Get results for warm data
-    for(mode in c('m1','m2','m3','m1m2','m1m3','m2m3','m1m2m3'))
-      results$mean[name, paste0('warm.', mode), fold] <- 
-        fn(all.resp.train[is.na(train.data$resp)], 
-             mean.tens.list[[mode]][is.na(train.data$resp)])/stddev
-  
-    # Get results for modes
-    for(mode in c('m1','m2','m3','m1m2','m1m3','m2m3','m1m2m3')) {
-      dat <- get(paste0('test.data.', mode))
-      if(length(dat))
-        results$mean[name, mode, fold] <- fn(dat$resp,
-          mean.tens.list[[mode]][1:dim(dat$resp)[1],
-                                 1:dim(dat$resp)[2],
-                                 1:dim(dat$resp)[3],drop=F])/stddev
-    } 
-  }
+  results$mean['s.cor', 'train.m1', fold] <- cor(train.data$resp, m1.mean.tens, use='complete.obs', method='spearman')
+  results$mean['s.cor', 'train.m2', fold] <- cor(train.data$resp, m2.mean.tens, use='complete.obs', method='spearman')
+  results$mean['s.cor', 'train.m1m2', fold] <- cor(train.data$resp, m1m2.mean.tens, use='complete.obs', method='spearman')
+  results$mean['s.cor', 'warm.m1', fold] <- cor(all.resp.train[is.na(train.data$resp)],
+    m1.mean.tens[is.na(train.data$resp)], use='complete.obs', method='spearman')
+  results$mean['s.cor', 'warm.m2', fold] <- cor(all.resp.train[is.na(train.data$resp)],
+    m2.mean.tens[is.na(train.data$resp)], use='complete.obs', method='spearman')
+  results$mean['s.cor', 'warm.m1m2', fold] <- tryCatch(cor(all.resp.train[is.na(train.data$resp)], 
+    m1m2.mean.tens[is.na(train.data$resp)], use='complete.obs', method='spearman'), error=function(e) NA)
+  if(exists('test.data.m1'))
+    results$mean['s.cor', 'm1', fold] <- cor(test.data.m1$resp,
+      m1.mean.tens[1:dim(test.data.m1$resp)[1],,], use='complete.obs', method='spearman')
+  if(exists('test.data.m2'))
+    results$mean['s.cor', 'm2', fold] <- cor(test.data.m2$resp,
+      m2.mean.tens[,1:dim(test.data.m2$resp)[2],], use='complete.obs', method='spearman')
+  if(exists('test.data.m1m2'))
+    results$mean['s.cor', 'm1m2', fold] <- cor(test.data.m1m2$resp,
+      m1m2.mean.tens[1:dim(test.data.m1m2$resp)[1], 1:dim(test.data.m1m2$resp)[2],], use='complete.obs', method='spearman')
 
   results$training['lower.bnd', fold, 1:trained$iter] <-
     trained$lower.bnd
@@ -122,10 +137,6 @@ loadData <- function(f, results){
     results$training['p.cor', fold, 1:trained$iter] <- trained$p.cor
   if(length(trained$s.cor))
     results$training['s.cor', fold, 1:trained$iter] <- trained$s.cor
-
-  # Remove NA or NaN columns from test.results
-  test.results <- test.results[,apply(test.results, 2, function(x) sum(!is.na(x))>0)]
-
   if('warm.RMSE' %in% names(test.results)) {
     results$training['warm.RMSE', fold, 1:trained$iter] <- test.results$warm.RMSE
     results$training['warm.exp.var', fold, 1:trained$iter] <- test.results$warm.exp.var
@@ -392,24 +403,17 @@ n.files <- length(list.files(path = dirname(run_prefix),
 f1 <- paste0(run_prefix, '.0/image.Rdata')
 iters <- get_iters(f1)
 
-training <- array(NA, dim=c(38, n.files, iters),
+training <- array(NA, dim=c(22, n.files, iters),
   dimnames=list(c('lower.bnd', 'A.RMSE', 'H.RMSE', 'warm.RMSE', 
-                  'm1.RMSE', 'm2.RMSE', 'm3.RMSE', 
-                  'm1m2.RMSE', 'm1m3.RMSE', 'm2m3.RMSE', 'm1m2m3.RMSE',
-                  'exp.var', 'warm.exp.var', 
-                  'm1.exp.var', 'm2.exp.var', 'm3.exp.var',
-                  'm1m2.exp.var', 'm1m3.exp.var', 'm2m3.exp.var', 'm1m2m3.exp.var',
-                  'p.cor', 'warm.p.cor', 
-                  'm1.p.cor', 'm2.p.cor', 'm3.p.cor',
-                  'm1m2.p.cor', 'm1m3.p.cor', 'm2m3.p.cor', 'm1m2m3.p.cor',
-                  's.cor', 'warm.s.cor', 
-                  'm1.s.cor', 'm2.s.cor', 'm3.s.cor',
-                  'm1m2.s.cor', 'm1m3.s.cor', 'm2m3.s.cor', 'm1m2m3.s.cor'),
+                  'm1.RMSE', 'm2.RMSE', 'm1m2.RMSE',
+                  'exp.var', 'warm.exp.var', 'm1.exp.var', 
+                  'm2.exp.var', 'm1m2.exp.var', 
+                  'p.cor', 'warm.p.cor', 'm1.p.cor', 'm2.p.cor', 'm1m2.p.cor',
+                  's.cor', 'warm.s.cor', 'm1.s.cor', 'm2.s.cor', 'm1m2.s.cor'),
                 paste0('fold.', 1:n.files), 1:iters))
 
-summaries <- array(NA, dim=c(11, 15, n.files),
-  dimnames=list(c('A' ,'H', 'train', 'warm', 'm1', 'm2', 'm3', 
-                  'm1m2', 'm1m3', 'm2m3', 'm1m2m3'),
+summaries <- array(NA, dim=c(7, 15, n.files),
+  dimnames=list(c('A' ,'H', 'train', 'warm', 'm1', 'm2', 'm1m2'),
                 c('RMSE', 'min.RMSE', 'min.RMSE.iter',
                   'clip.RMSE', 'min.clip.RMSE', 'min.clip.RMSE.iter', 
                   'exp.var', 'max.exp.var.iter', 'max.exp.var',
@@ -417,12 +421,10 @@ summaries <- array(NA, dim=c(11, 15, n.files),
                   's.cor', 'max.s.cor.iter', 'max.s.cor'),
                 paste0('fold.', 1:n.files)))
 
-mean <- array(NA, dim=c(4, 17, n.files), 
+mean <- array(NA, dim=c(4, 9, n.files), 
   dimnames=list(c('RMSE', 'exp.var', 'p.cor', 's.cor'),
-                c('train.m1', 'train.m2', 'train.m3',
-                  'train.m1m2', 'train.m1m3', 'train.m2m3', 'train.m1m2m3',
-                  'warm.m1', 'warm.m2', 'warm.m3', 
-                  'warm.m1m2', 'warm.m1m3', 'warm.m2m3', 'warm.m1m2m3',
+                c('train.m1', 'train.m2', 'train.m1m2', 
+                  'warm.m1', 'warm.m2', 'warm.m1m2', 
                   'm1', 'm2', 'm1m2'),
                 paste0('fold.', 1:n.files)))
 
@@ -445,41 +447,30 @@ for(fld in 1:n.files) {
   results <- loadData(f, results)
 }
 
-# Remove NA results for tests that weren't performed
-# results$training <- results$training[apply(results$training, 1, function(x) sum(!is.na(x))>0),,]
-# results$summaries <- results$summaries[apply(results$summaries, 1, function(x) sum(!is.na(x))>0),,]
-# results$mean <- results$mean[apply(results$mean, 1, function(x) sum(!is.na(x))>0),,]
-
 # Make data frame counting how many folds peform better than the mean
-better <- matrix(NA, dim(results$summaries)[1], 
-  length(dimnames(results$summaries)[[2]][!grepl('iter', dimnames(results$summaries)[[2]])]), 
-  dimnames=list(dimnames(results$summaries)[[1]],
-                dimnames(results$summaries)[[2]][!grepl('iter', dimnames(results$summaries)[[2]])]))
+better <- matrix(NA, 7, 10, dimnames=list(dimnames(results$summaries)[[1]],
+  dimnames(results$summaries)[[2]][!grepl('iter', dimnames(results$summaries)[[2]])]))
 
 for(type in c('A', 'H', 'train')) for(resp in c('RMSE', 'min.RMSE', 'clip.RMSE', 'min.clip.RMSE')) 
-  if(type %in% dimnames(results$summaries)[[1]])
-    better[type, resp] <- sum(results$summaries[type, resp,] < results$mean['RMSE', 'train.m1',])
+  better[type, resp] <- sum(results$summaries[type, resp,] < results$mean['RMSE', 'train.m1',])
 for(resp in c('RMSE', 'min.RMSE', 'clip.RMSE', 'min.clip.RMSE')) 
   better['warm', resp] <- sum(results$summaries['warm', resp,] < results$mean['RMSE', 'warm.m1',])
 for(type in c('m1', 'm2', 'm1m2')) for (resp in c('RMSE', 'min.RMSE', 'clip.RMSE', 'min.clip.RMSE')) 
   better[type, resp] <- sum(results$summaries[type, resp,] < results$mean['RMSE', type,])
 for(type in c('A', 'H', 'train')) for(resp in c('exp.var', 'max.exp.var')) 
-  if(type %in% dimnames(results$summaries)[[1]])
-    better[type, resp] <- sum(results$summaries[type, resp,] > results$mean['exp.var', 'train.m1',])
+  better[type, resp] <- sum(results$summaries[type, resp,] > results$mean['exp.var', 'train.m1',])
 for(resp in c('exp.var', 'max.exp.var')) 
   better['warm', resp] <- sum(results$summaries['warm', resp,] > results$mean['exp.var', 'warm.m1',])
 for(type in c('m1', 'm2', 'm1m2')) for (resp in c('exp.var', 'max.exp.var')) 
   better[type, resp] <- sum(results$summaries[type, resp,] > results$mean['exp.var', type,])
 for(type in c('A', 'H', 'train')) for(resp in c('p.cor', 'max.p.cor')) 
-  if(type %in% dimnames(results$summaries)[[1]])
-    better[type, resp] <- sum(results$summaries[type, resp,] > results$mean['p.cor', 'train.m1',])
+  better[type, resp] <- sum(results$summaries[type, resp,] > results$mean['p.cor', 'train.m1',])
 for(resp in c('p.cor', 'max.p.cor')) 
   better['warm', resp] <- sum(results$summaries['warm', resp,] > results$mean['p.cor', 'warm.m1',])
 for(type in c('m1', 'm2', 'm1m2')) for (resp in c('p.cor', 'max.p.cor')) 
   better[type, resp] <- sum(results$summaries[type, resp,] > results$mean['p.cor', type,])
 for(type in c('A', 'H', 'train')) for(resp in c('s.cor', 'max.s.cor')) 
-  if(type %in% dimnames(results$summaries)[[1]])
-    better[type, resp] <- sum(results$summaries[type, resp,] > results$mean['s.cor', 'train.m1',])
+  better[type, resp] <- sum(results$summaries[type, resp,] > results$mean['s.cor', 'train.m1',])
 for(resp in c('s.cor', 'max.s.cor')) 
   better['warm', resp] <- sum(results$summaries['warm', resp,] > results$mean['s.cor', 'warm.m1',])
 for(type in c('m1', 'm2', 'm1m2')) for (resp in c('s.cor', 'max.s.cor')) 
@@ -564,61 +555,53 @@ for(i in 2:n.files)
 abline(h=0, lty=2, lwd=2)
 dev.off()
 
-if(sum(!is.na(results$training['warm.RMSE',1,]))) {
-  pdf(file=paste0(run_prefix, '_warm_RMSEs.pdf'))
-  plot(results$training['warm.RMSE',1,] - results$mean['RMSE', 'warm.m1',1], 
-    type='l', lwd=2, col=cols[1], 
-    ylim=range(results$training['warm.RMSE',,] - results$mean['RMSE', 'warm.m1',]),
-    main="Warm RMSEs relative to predicting mean response",
-    xlab="Iteration", ylab="Relative RMSE")
-  for(i in 2:n.files)
-    points(results$training['warm.RMSE',i,] - results$mean['RMSE', 'warm.m1',i],
-       type='l', lwd=2, col=cols[i])
-  abline(h=0, lty=2, lwd=2)
-  dev.off()
-}
-  
-if(sum(!is.na(results$training['m1.RMSE',1,]))) {
-  pdf(file=paste0(run_prefix, '_cold_m1_RMSEs.pdf'))
-  plot(results$training['m1.RMSE',1,] - results$mean['RMSE', 'm1',1], 
-    type='l', lwd=2, col=cols[1], 
-    ylim=range(results$training['m1.RMSE',,] - results$mean['RMSE', 'm1',]),
-    main="Cold mode 1 RMSEs relative to predicting mean response",
-    xlab="Iteration", ylab="Relative RMSE")
-  for(i in 2:n.files)
-    points(results$training['m1.RMSE',i,] - results$mean['RMSE', 'm1',i],
-       type='l', lwd=2, col=cols[i])
-  abline(h=0, lty=2, lwd=2)
-  dev.off()
-}
+pdf(file=paste0(run_prefix, '_warm_RMSEs.pdf'))
+plot(results$training['warm.RMSE',1,] - results$mean['RMSE', 'warm.m1',1], 
+  type='l', lwd=2, col=cols[1], 
+  ylim=range(results$training['warm.RMSE',,] - results$mean['RMSE', 'warm.m1',]),
+  main="Warm RMSEs relative to predicting mean response",
+  xlab="Iteration", ylab="Relative RMSE")
+for(i in 2:n.files)
+  points(results$training['warm.RMSE',i,] - results$mean['RMSE', 'warm.m1',i],
+     type='l', lwd=2, col=cols[i])
+abline(h=0, lty=2, lwd=2)
+dev.off()
 
-if(sum(!is.na(results$training['m2.RMSE',1,]))) {
-  pdf(file=paste0(run_prefix, '_cold_m2_RMSEs.pdf'))
-  plot(results$training['m2.RMSE',1,] - results$mean['RMSE', 'm2',1], 
-    type='l', lwd=2, col=cols[1], 
-    ylim=range(results$training['m2.RMSE',,] - results$mean['RMSE', 'm2',]),
-    main="Cold mode 2 RMSEs relative to predicting mean response",
-    xlab="Iteration", ylab="Relative RMSE")
-  for(i in 2:n.files)
-    points(results$training['m2.RMSE',i,] - results$mean['RMSE', 'm2',i],
-       type='l', lwd=2, col=cols[i])
-  abline(h=0, lty=2, lwd=2)
-  dev.off()
-}
+pdf(file=paste0(run_prefix, '_cold_m1_RMSEs.pdf'))
+plot(results$training['m1.RMSE',1,] - results$mean['RMSE', 'm1',1], 
+  type='l', lwd=2, col=cols[1], 
+  ylim=range(results$training['m1.RMSE',,] - results$mean['RMSE', 'm1',]),
+  main="Cold mode 1 RMSEs relative to predicting mean response",
+  xlab="Iteration", ylab="Relative RMSE")
+for(i in 2:n.files)
+  points(results$training['m1.RMSE',i,] - results$mean['RMSE', 'm1',i],
+     type='l', lwd=2, col=cols[i])
+abline(h=0, lty=2, lwd=2)
+dev.off()
 
-if(sum(!is.na(results$training['m1m2.RMSE',1,]))) {
-  pdf(file=paste0(run_prefix, '_cold_m1m2_RMSEs.pdf'))
-  plot(results$training['m1m2.RMSE',1,] - results$mean['RMSE', 'm1m2',1], 
-    type='l', lwd=2, col=cols[1], 
-    ylim=range(results$training['m1m2.RMSE',,] - results$mean['RMSE', 'm1m2',], na.rm=T),
-    main="Cold mode 1/mode 2 RMSEs relative to predicting mean response",
-    xlab="Iteration", ylab="Relative RMSE")
-  for(i in 2:n.files)
-    points(results$training['m1m2.RMSE',i,] - results$mean['RMSE', 'm1m2',i],
-       type='l', lwd=2, col=cols[i])
-  abline(h=0, lty=2, lwd=2)
-  dev.off()
-}
+pdf(file=paste0(run_prefix, '_cold_m2_RMSEs.pdf'))
+plot(results$training['m2.RMSE',1,] - results$mean['RMSE', 'm2',1], 
+  type='l', lwd=2, col=cols[1], 
+  ylim=range(results$training['m2.RMSE',,] - results$mean['RMSE', 'm2',]),
+  main="Cold mode 2 RMSEs relative to predicting mean response",
+  xlab="Iteration", ylab="Relative RMSE")
+for(i in 2:n.files)
+  points(results$training['m2.RMSE',i,] - results$mean['RMSE', 'm2',i],
+     type='l', lwd=2, col=cols[i])
+abline(h=0, lty=2, lwd=2)
+dev.off()
+
+pdf(file=paste0(run_prefix, '_cold_m1m2_RMSEs.pdf'))
+plot(results$training['m1m2.RMSE',1,] - results$mean['RMSE', 'm1m2',1], 
+  type='l', lwd=2, col=cols[1], 
+  ylim=range(results$training['m1m2.RMSE',,] - results$mean['RMSE', 'm1m2',], na.rm=T),
+  main="Cold mode 1/mode 2 RMSEs relative to predicting mean response",
+  xlab="Iteration", ylab="Relative RMSE")
+for(i in 2:n.files)
+  points(results$training['m1m2.RMSE',i,] - results$mean['RMSE', 'm1m2',i],
+     type='l', lwd=2, col=cols[i])
+abline(h=0, lty=2, lwd=2)
+dev.off()
 
 ########## Plot explained variances ################
 
@@ -634,203 +617,177 @@ for(i in 2:n.files)
 abline(h=0, lty=2, lwd=2)
 dev.off()
 
-if(sum(!is.na(results$training['warm.exp.var',1,]))) {
-  pdf(file=paste0(run_prefix, '_warm_exp_var.pdf'))
-  plot(results$training['warm.exp.var',1,] - results$mean['exp.var', 'warm.m1',1], 
-       type='l', lwd=2, col=cols[1], 
-       ylim=range(results$training['warm.exp.var',,] - results$mean['exp.var', 'warm.m1',]),
-       main="Warm explained variance \n relative to predicting mean response",
-       xlab="Iteration", ylab="Relative exp. var.")
-  for(i in 2:n.files)
-    points(results$training['warm.exp.var',i,] - results$mean['exp.var', 'warm.m1',i],
-           type='l', lwd=2, col=cols[i])
-  abline(h=0, lty=2, lwd=2)
-  dev.off()
-}
+pdf(file=paste0(run_prefix, '_warm_exp_var.pdf'))
+plot(results$training['warm.exp.var',1,] - results$mean['exp.var', 'warm.m1',1], 
+     type='l', lwd=2, col=cols[1], 
+     ylim=range(results$training['warm.exp.var',,] - results$mean['exp.var', 'warm.m1',]),
+     main="Warm explained variance \n relative to predicting mean response",
+     xlab="Iteration", ylab="Relative exp. var.")
+for(i in 2:n.files)
+  points(results$training['warm.exp.var',i,] - results$mean['exp.var', 'warm.m1',i],
+         type='l', lwd=2, col=cols[i])
+abline(h=0, lty=2, lwd=2)
+dev.off()
 
-if(sum(!is.na(results$training['m1.exp.var',1,]))) {
-  pdf(file=paste0(run_prefix, '_cold_m1_exp_var.pdf'))
-  plot(results$training['m1.exp.var',1,] - results$mean['exp.var', 'm1',1], 
-       type='l', lwd=2, col=cols[1], 
-       ylim=range(results$training['m1.exp.var',,] - results$mean['exp.var', 'm1',]),
-       main="Cold mode 1 explained variance \n relative to predicting mean response",
-       xlab="Iteration", ylab="Relative exp. var.")
-  for(i in 2:n.files)
-    points(results$training['m1.exp.var',i,] - results$mean['exp.var', 'm1',i],
-           type='l', lwd=2, col=cols[i])
-  abline(h=0, lty=2, lwd=2)
-  dev.off()
-}
-  
-if(sum(!is.na(results$training['m2.exp.var',1,]))) {
-  pdf(file=paste0(run_prefix, '_cold_m2_exp_var.pdf'))
-  plot(results$training['m2.exp.var',1,] - results$mean['exp.var', 'm2',1], 
-       type='l', lwd=2, col=cols[1], 
-       ylim=range(results$training['m2.exp.var',,] - results$mean['exp.var', 'm2',]),
-       main="Cold mode 2 explained variance \n relative to predicting mean response",
-       xlab="Iteration", ylab="Relative exp. var.")
-  for(i in 2:n.files)
-    points(results$training['m2.exp.var',i,] - results$mean['exp.var', 'm2',i],
-           type='l', lwd=2, col=cols[i])
-  abline(h=0, lty=2, lwd=2)
-  dev.off()
-}
+pdf(file=paste0(run_prefix, '_cold_m1_exp_var.pdf'))
+plot(results$training['m1.exp.var',1,] - results$mean['exp.var', 'm1',1], 
+     type='l', lwd=2, col=cols[1], 
+     ylim=range(results$training['m1.exp.var',,] - results$mean['exp.var', 'm1',]),
+     main="Cold mode 1 explained variance \n relative to predicting mean response",
+     xlab="Iteration", ylab="Relative exp. var.")
+for(i in 2:n.files)
+  points(results$training['m1.exp.var',i,] - results$mean['exp.var', 'm1',i],
+         type='l', lwd=2, col=cols[i])
+abline(h=0, lty=2, lwd=2)
+dev.off()
 
-if(sum(!is.na(results$training['m1m2.exp.var',1,]))) {
-  pdf(file=paste0(run_prefix, '_cold_m1m2_exp_var.pdf'))
-  plot(results$training['m1m2.exp.var',1,] - results$mean['exp.var', 'm1m2',1], 
-       type='l', lwd=2, col=cols[1], 
-       ylim=range(results$training['m1m2.exp.var',,] - results$mean['exp.var', 'm1m2',], na.rm=T),
-       main="Cold mode 1/mode 2 explained variance \n relative to predicting mean response",
-       xlab="Iteration", ylab="Relative exp. var.")
-  for(i in 2:n.files)
-    points(results$training['m1m2.exp.var',i,] - results$mean['exp.var', 'm1m2',i],
-           type='l', lwd=2, col=cols[i])
-  abline(h=0, lty=2, lwd=2)
-  dev.off()
-}
+pdf(file=paste0(run_prefix, '_cold_m2_exp_var.pdf'))
+plot(results$training['m2.exp.var',1,] - results$mean['exp.var', 'm2',1], 
+     type='l', lwd=2, col=cols[1], 
+     ylim=range(results$training['m2.exp.var',,] - results$mean['exp.var', 'm2',]),
+     main="Cold mode 2 explained variance \n relative to predicting mean response",
+     xlab="Iteration", ylab="Relative exp. var.")
+for(i in 2:n.files)
+  points(results$training['m2.exp.var',i,] - results$mean['exp.var', 'm2',i],
+         type='l', lwd=2, col=cols[i])
+abline(h=0, lty=2, lwd=2)
+dev.off()
+
+pdf(file=paste0(run_prefix, '_cold_m1m2_exp_var.pdf'))
+plot(results$training['m1m2.exp.var',1,] - results$mean['exp.var', 'm1m2',1], 
+     type='l', lwd=2, col=cols[1], 
+     ylim=range(results$training['m1m2.exp.var',,] - results$mean['exp.var', 'm1m2',], na.rm=T),
+     main="Cold mode 1/mode 2 explained variance \n relative to predicting mean response",
+     xlab="Iteration", ylab="Relative exp. var.")
+for(i in 2:n.files)
+  points(results$training['m1m2.exp.var',i,] - results$mean['exp.var', 'm1m2',i],
+         type='l', lwd=2, col=cols[i])
+abline(h=0, lty=2, lwd=2)
+dev.off()
 
 ########## Plot Pearson correlations ################
-if(sum(!is.na(results$training['p.cor',1,]))) {
-  pdf(file=paste0(run_prefix, '_training_p_cor.pdf'))
-  plot(results$training['p.cor',1,] - results$mean['p.cor', 'train.m1',1], 
-       type='l', lwd=2, col=cols[1], 
-       ylim=range(results$training['p.cor',,] - results$mean['p.cor', 'train.m1',], na.rm=T),
-       main="Training Pearson correlation \n relative to predicting mean response",
-       xlab="Iteration", ylab="Relative Pearson correlation")
-  for(i in 2:n.files)
-    points(results$training['p.cor',i,] - results$mean['p.cor', 'train.m1',i],
-           type='l', lwd=2, col=cols[i])
-  abline(h=0, lty=2, lwd=2)
-  dev.off()
-}
 
-if(sum(!is.na(results$training['warm.p.cor',1,]))) {
-  pdf(file=paste0(run_prefix, '_warm_p_cor.pdf'))
-  plot(results$training['warm.p.cor',1,] - results$mean['p.cor', 'warm.m1',1], 
-       type='l', lwd=2, col=cols[1], 
-       ylim=range(results$training['warm.p.cor',,] - results$mean['p.cor', 'warm.m1',], na.rm=T),
-       main="Warm Pearson correlation \n relative to predicting mean response",
-       xlab="Iteration", ylab="Relative Pearson correlation")
-  for(i in 2:n.files)
-    points(results$training['warm.p.cor',i,] - results$mean['p.cor', 'warm.m1',i],
-           type='l', lwd=2, col=cols[i])
-  abline(h=0, lty=2, lwd=2)
-  dev.off()
-}
+pdf(file=paste0(run_prefix, '_training_p_cor.pdf'))
+plot(results$training['p.cor',1,] - results$mean['p.cor', 'train.m1',1], 
+     type='l', lwd=2, col=cols[1], 
+     ylim=range(results$training['p.cor',,] - results$mean['p.cor', 'train.m1',]),
+     main="Training Pearson correlation \n relative to predicting mean response",
+     xlab="Iteration", ylab="Relative Pearson correlation")
+for(i in 2:n.files)
+  points(results$training['p.cor',i,] - results$mean['p.cor', 'train.m1',i],
+         type='l', lwd=2, col=cols[i])
+abline(h=0, lty=2, lwd=2)
+dev.off()
 
-if(sum(!is.na(results$training['m1.p.cor',1,]))) {
-  pdf(file=paste0(run_prefix, '_cold_m1_p_cor.pdf'))
-  plot(results$training['m1.p.cor',1,] - results$mean['p.cor', 'm1',1], 
-       type='l', lwd=2, col=cols[1], 
-       ylim=range(results$training['m1.p.cor',,] - results$mean['p.cor', 'm1',], na.rm=T),
-       main="Cold mode 1 Pearson correlation \n relative to predicting mean response",
-       xlab="Iteration", ylab="Relative Pearson correlation")
-  for(i in 2:n.files)
-    points(results$training['m1.p.cor',i,] - results$mean['p.cor', 'm1',i],
-           type='l', lwd=2, col=cols[i])
-  abline(h=0, lty=2, lwd=2)
-  dev.off()
-}
+pdf(file=paste0(run_prefix, '_warm_p_cor.pdf'))
+plot(results$training['warm.p.cor',1,] - results$mean['p.cor', 'warm.m1',1], 
+     type='l', lwd=2, col=cols[1], 
+     ylim=range(results$training['warm.p.cor',,] - results$mean['p.cor', 'warm.m1',]),
+     main="Warm Pearson correlation \n relative to predicting mean response",
+     xlab="Iteration", ylab="Relative Pearson correlation")
+for(i in 2:n.files)
+  points(results$training['warm.p.cor',i,] - results$mean['p.cor', 'warm.m1',i],
+         type='l', lwd=2, col=cols[i])
+abline(h=0, lty=2, lwd=2)
+dev.off()
 
-if(sum(!is.na(results$training['m2.p.cor',1,]))) {
-  pdf(file=paste0(run_prefix, '_cold_m2_p_cor.pdf'))
-  plot(results$training['m2.p.cor',1,] - results$mean['p.cor', 'm2',1], 
-       type='l', lwd=2, col=cols[1], 
-       ylim=range(results$training['m2.p.cor',,] - results$mean['p.cor', 'm2',], na.rm=T),
-       main="Cold mode 2 Pearson correlation \n relative to predicting mean response",
-       xlab="Iteration", ylab="Relative Pearson correlation")
-  for(i in 2:n.files)
-    points(results$training['m2.p.cor',i,] - results$mean['p.cor', 'm2',i],
-           type='l', lwd=2, col=cols[i])
-  abline(h=0, lty=2, lwd=2)
-  dev.off()
-}
+pdf(file=paste0(run_prefix, '_cold_m1_p_cor.pdf'))
+plot(results$training['m1.p.cor',1,] - results$mean['p.cor', 'm1',1], 
+     type='l', lwd=2, col=cols[1], 
+     ylim=range(results$training['m1.p.cor',,] - results$mean['p.cor', 'm1',]),
+     main="Cold mode 1 Pearson correlation \n relative to predicting mean response",
+     xlab="Iteration", ylab="Relative Pearson correlation")
+for(i in 2:n.files)
+  points(results$training['m1.p.cor',i,] - results$mean['p.cor', 'm1',i],
+         type='l', lwd=2, col=cols[i])
+abline(h=0, lty=2, lwd=2)
+dev.off()
 
-if(sum(!is.na(results$training['m1m2.p.cor',1,]))) {
-  pdf(file=paste0(run_prefix, '_cold_m1m2_p_cor.pdf'))
-  plot(results$training['m1m2.p.cor',1,] - results$mean['p.cor', 'm1m2',1], 
-       type='l', lwd=2, col=cols[1], 
-       ylim=range(results$training['m1m2.p.cor',,] - results$mean['p.cor', 'm1m2',], na.rm=T),
-       main="Cold mode 1/mode 2 Pearson correlation \n relative to predicting mean response",
-       xlab="Iteration", ylab="Relative Pearson correlation")
-  for(i in 2:n.files)
-    points(results$training['m1m2.p.cor',i,] - results$mean['p.cor', 'm1m2',i],
-           type='l', lwd=2, col=cols[i])
-  abline(h=0, lty=2, lwd=2)
-  dev.off()
-}
+pdf(file=paste0(run_prefix, '_cold_m2_p_cor.pdf'))
+plot(results$training['m2.p.cor',1,] - results$mean['p.cor', 'm2',1], 
+     type='l', lwd=2, col=cols[1], 
+     ylim=range(results$training['m2.p.cor',,] - results$mean['p.cor', 'm2',]),
+     main="Cold mode 2 Pearson correlation \n relative to predicting mean response",
+     xlab="Iteration", ylab="Relative Pearson correlation")
+for(i in 2:n.files)
+  points(results$training['m2.p.cor',i,] - results$mean['p.cor', 'm2',i],
+         type='l', lwd=2, col=cols[i])
+abline(h=0, lty=2, lwd=2)
+dev.off()
+
+pdf(file=paste0(run_prefix, '_cold_m1m2_p_cor.pdf'))
+plot(results$training['m1m2.p.cor',1,] - results$mean['p.cor', 'm1m2',1], 
+     type='l', lwd=2, col=cols[1], 
+     ylim=range(results$training['m1m2.p.cor',,] - results$mean['p.cor', 'm1m2',], na.rm=T),
+     main="Cold mode 1/mode 2 Pearson correlation \n relative to predicting mean response",
+     xlab="Iteration", ylab="Relative Pearson correlation")
+for(i in 2:n.files)
+  points(results$training['m1m2.p.cor',i,] - results$mean['p.cor', 'm1m2',i],
+         type='l', lwd=2, col=cols[i])
+abline(h=0, lty=2, lwd=2)
+dev.off()
 
 ########## Plot Spearman correlations ################
-if(sum(!is.na(results$training['s.cor',1,]))) {
-  pdf(file=paste0(run_prefix, '_training_s_cor.pdf'))
-  plot(results$training['s.cor',1,] - results$mean['s.cor', 'train.m1',1], 
-       type='l', lwd=2, col=cols[1], 
-       ylim=range(results$training['s.cor',,] - results$mean['s.cor', 'train.m1',], na.rm=T),
-       main="Training Spearman correlation \n relative to predicting mean response",
-       xlab="Iteration", ylab="Relative Spearman correlation")
-  for(i in 2:n.files)
-    points(results$training['s.cor',i,] - results$mean['s.cor', 'train.m1',i],
-           type='l', lwd=2, col=cols[i])
-  abline(h=0, lty=2, lwd=2)
-  dev.off()
-}
 
-if(sum(!is.na(results$training['warm.s.cor',1,]))) {
-  pdf(file=paste0(run_prefix, '_warm_s_cor.pdf'))
-  plot(results$training['warm.s.cor',1,] - results$mean['s.cor', 'warm.m1',1], 
-       type='l', lwd=2, col=cols[1], 
-       ylim=range(results$training['warm.s.cor',,] - results$mean['s.cor', 'warm.m1',], na.rm=T),
-       main="Warm Spearman correlation \n relative to predicting mean response",
-       xlab="Iteration", ylab="Relative Spearman correlation")
-  for(i in 2:n.files)
-    points(results$training['warm.s.cor',i,] - results$mean['s.cor', 'warm.m1',i],
-           type='l', lwd=2, col=cols[i])
-  abline(h=0, lty=2, lwd=2)
-  dev.off()
-}
+pdf(file=paste0(run_prefix, '_training_s_cor.pdf'))
+plot(results$training['s.cor',1,] - results$mean['s.cor', 'train.m1',1], 
+     type='l', lwd=2, col=cols[1], 
+     ylim=range(results$training['s.cor',,] - results$mean['s.cor', 'train.m1',]),
+     main="Training Spearman correlation \n relative to predicting mean response",
+     xlab="Iteration", ylab="Relative Spearman correlation")
+for(i in 2:n.files)
+  points(results$training['s.cor',i,] - results$mean['s.cor', 'train.m1',i],
+         type='l', lwd=2, col=cols[i])
+abline(h=0, lty=2, lwd=2)
+dev.off()
 
-if(sum(!is.na(results$training['m1.s.cor',1,]))) {
-  pdf(file=paste0(run_prefix, '_cold_m1_s_cor.pdf'))
-  plot(results$training['m1.s.cor',1,] - results$mean['s.cor', 'm1',1], 
-       type='l', lwd=2, col=cols[1], 
-       ylim=range(results$training['m1.s.cor',,] - results$mean['s.cor', 'm1',], na.rm=T),
-       main="Cold mode 1 Spearman correlation \n relative to predicting mean response",
-       xlab="Iteration", ylab="Relative Spearman correlation")
-  for(i in 2:n.files)
-    points(results$training['m1.s.cor',i,] - results$mean['s.cor', 'm1',i],
-           type='l', lwd=2, col=cols[i])
-  abline(h=0, lty=2, lwd=2)
-  dev.off()
-}
+pdf(file=paste0(run_prefix, '_warm_s_cor.pdf'))
+plot(results$training['warm.s.cor',1,] - results$mean['s.cor', 'warm.m1',1], 
+     type='l', lwd=2, col=cols[1], 
+     ylim=range(results$training['warm.s.cor',,] - results$mean['s.cor', 'warm.m1',]),
+     main="Warm Spearman correlation \n relative to predicting mean response",
+     xlab="Iteration", ylab="Relative Spearman correlation")
+for(i in 2:n.files)
+  points(results$training['warm.s.cor',i,] - results$mean['s.cor', 'warm.m1',i],
+         type='l', lwd=2, col=cols[i])
+abline(h=0, lty=2, lwd=2)
+dev.off()
 
-if(sum(!is.na(results$training['m2.s.cor',1,]))) {
-  pdf(file=paste0(run_prefix, '_cold_m2_s_cor.pdf'))
-  plot(results$training['m2.s.cor',1,] - results$mean['s.cor', 'm2',1], 
-       type='l', lwd=2, col=cols[1], 
-       ylim=range(results$training['m2.s.cor',,] - results$mean['s.cor', 'm2',], na.rm=T),
-       main="Cold mode 2 Spearman correlation \n relative to predicting mean response",
-       xlab="Iteration", ylab="Relative Spearman correlation")
-  for(i in 2:n.files)
-    points(results$training['m2.s.cor',i,] - results$mean['s.cor', 'm2',i],
-           type='l', lwd=2, col=cols[i])
-  abline(h=0, lty=2, lwd=2)
-  dev.off()
-}
+pdf(file=paste0(run_prefix, '_cold_m1_s_cor.pdf'))
+plot(results$training['m1.s.cor',1,] - results$mean['s.cor', 'm1',1], 
+     type='l', lwd=2, col=cols[1], 
+     ylim=range(results$training['m1.s.cor',,] - results$mean['s.cor', 'm1',]),
+     main="Cold mode 1 Spearman correlation \n relative to predicting mean response",
+     xlab="Iteration", ylab="Relative Spearman correlation")
+for(i in 2:n.files)
+  points(results$training['m1.s.cor',i,] - results$mean['s.cor', 'm1',i],
+         type='l', lwd=2, col=cols[i])
+abline(h=0, lty=2, lwd=2)
+dev.off()
 
-if(sum(!is.na(results$training['m1m2.s.cor',1,]))) {
-  pdf(file=paste0(run_prefix, '_cold_m1m2_s_cor.pdf'))
-  plot(results$training['m1m2.s.cor',1,] - results$mean['s.cor', 'm1m2',1], 
-       type='l', lwd=2, col=cols[1], 
-       ylim=range(results$training['m1m2.s.cor',,] - results$mean['s.cor', 'm1m2',], na.rm=T),
-       main="Cold mode 1/mode 2 Spearman correlation \n relative to predicting mean response",
-       xlab="Iteration", ylab="Relative Spearman correlation")
-  for(i in 2:n.files)
-    points(results$training['m1m2.s.cor',i,] - results$mean['s.cor', 'm1m2',i],
-           type='l', lwd=2, col=cols[i])
-  abline(h=0, lty=2, lwd=2)
-  dev.off()
-}
+pdf(file=paste0(run_prefix, '_cold_m2_s_cor.pdf'))
+plot(results$training['m2.s.cor',1,] - results$mean['s.cor', 'm2',1], 
+     type='l', lwd=2, col=cols[1], 
+     ylim=range(results$training['m2.s.cor',,] - results$mean['s.cor', 'm2',]),
+     main="Cold mode 2 Spearman correlation \n relative to predicting mean response",
+     xlab="Iteration", ylab="Relative Spearman correlation")
+for(i in 2:n.files)
+  points(results$training['m2.s.cor',i,] - results$mean['s.cor', 'm2',i],
+         type='l', lwd=2, col=cols[i])
+abline(h=0, lty=2, lwd=2)
+dev.off()
+
+pdf(file=paste0(run_prefix, '_cold_m1m2_s_cor.pdf'))
+plot(results$training['m1m2.s.cor',1,] - results$mean['s.cor', 'm1m2',1], 
+     type='l', lwd=2, col=cols[1], 
+     ylim=range(results$training['m1m2.s.cor',,] - results$mean['s.cor', 'm1m2',], na.rm=T),
+     main="Cold mode 1/mode 2 Spearman correlation \n relative to predicting mean response",
+     xlab="Iteration", ylab="Relative Spearman correlation")
+for(i in 2:n.files)
+  points(results$training['m1m2.s.cor',i,] - results$mean['s.cor', 'm1m2',i],
+         type='l', lwd=2, col=cols[i])
+abline(h=0, lty=2, lwd=2)
+dev.off()
 
 # pdf(file=paste0(run_prefix, '_warm_RMSE_barplots.pdf'), height=14/1.62)
 # par(mfrow=c(2,1))

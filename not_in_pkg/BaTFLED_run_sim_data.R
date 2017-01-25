@@ -24,8 +24,6 @@
 #  sigma2=1 parallel=T cores=16 \
 #  core.spar=.5 noise.sd=0.1
 
-.libPaths("/home/users/lazar/R/x86_64-redhat-linux-gnu-library/3.2")
-
 pkgTest <- function(x) { # load packages and install if needed
   if (!require(x,character.only = TRUE)) {
     install.packages(x,dep=TRUE)
