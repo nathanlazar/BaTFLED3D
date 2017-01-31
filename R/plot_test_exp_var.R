@@ -14,9 +14,10 @@ plot_test_exp_var <- function(test.results, ylim='default', mean=F, main=NA) {
   
   exp.var.cols <- grep('exp.var$', names(test.results))
 
-  if(ylim=='default')  ylim=c(-1,1)
-  if(is.na(ylim)) 
-    ylim=range(test.results[-1,exp.var.cols], na.rm=T)
+  if(ylim=='default') {
+    ylim <- c(-1,1)
+  } else if(ylim=='auto') 
+    ylim <- range(test.results[-1,exp.var.cols], na.rm=T)
 
   types <- sub('.exp.var', '', names(test.results)[exp.var.cols])
   types <- sub('^m', 'Mode ', types)
