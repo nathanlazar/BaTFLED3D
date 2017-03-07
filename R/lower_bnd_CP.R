@@ -161,7 +161,7 @@ lower_bnd_CP <- function(m, d) {
   minus.r <- array(0, dim=c(I,J,K,R))
   for(r in 1:R) 
     minus.r[,,,r] <- mult_3d(core[r,r,r,drop=F], m$mode1.H.mean[,r,drop=F], m$mode2.H.mean[,r,drop=F], m$mode3.H.mean[,r,drop=F]) *
-                     mult_3d(core[-r,-r,-r], m$mode1.H.mean[,-r], m$mode2.H.mean[,-r], m$mode3.H.mean[,-r])
+                     mult_3d(core[-r,-r,-r,drop=F], m$mode1.H.mean[,-r,drop=F], m$mode2.H.mean[,-r,drop=F], m$mode3.H.mean[,-r,drop=F])
   
   exp.p.y <- -.5 * safe_log(2*pi*m$sigma2) * sum(d$delta) -
     (.5/m$sigma2) * sum(d$resp^2, na.rm=T) -
