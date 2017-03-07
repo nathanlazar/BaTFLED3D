@@ -74,7 +74,7 @@ update_mode1_CP <- function(m, d, params) {
       }
       m$mode1.H.mean[i,r] <- m$mode1.H.var[i,r] * ((1/m$sigma2) *
         sum(outer(m$mode2.H.mean[,r], m$mode3.H.mean[,r]) *
-            (d$resp[i,,] - (sweep(m$mode2.H.mean[,-r], MARGIN=2, m$mode1.H.mean[i,-r], '*') %*%
+            (d$resp[i,,] - (sweep(m$mode2.H.mean[,-r,drop=F], MARGIN=2, m$mode1.H.mean[i,-r], '*') %*%
             t(m$mode3.H.mean[,-r,drop=F]))), na.rm=T) + 1/m$m1.sigma2 * x_times_a)
     }
   }

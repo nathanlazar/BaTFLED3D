@@ -31,18 +31,18 @@
 #' \item{R}{Numeric. Number of latent factors used in a CP model. (4)}
 #' \item{R1}{Numeric. Number of latent factors used for mode 1 in a Tucker decomposition. (4)}
 #' \item{R2}{Numeric. Number of latent factors used for mode 2 in a Tucker decomposition. (4)}
-#' \item{R3}{Numeric. Number of latent factors used for mode 3 in a Tucker decomposition. (3)}
+#' \item{R3}{Numeric. Number of latent factors used for mode 3 in a Tucker decomposition. (4)}
 #' \item{core.updates}{Numeric. Number of core elements to update each round for stochastic training. (all)}
 #' \item{m1.alpha}{Numeric. Prior for the 'shape' parameter of the gamma distribution on the 
 #' precision values in the mode 1 projection (A) matrix. Set this to a small value (ex. 1e-10)
-#' to encourage sparsity in mode 1 predictors. (1e-10)}
-#' \item{m2.alpha}{Numeric. Same as above for mode 2. (1e-10)}
+#' to encourage sparsity in mode 1 predictors. (1)}
+#' \item{m2.alpha}{Numeric. Same as above for mode 2. (1)}
 #' \item{m3.alpha}{Numeric. Same as above for mode 3. (1)}
 #' \item{m1.beta}{Numeric. Prior for the 'scale' parameter of the gamma distribution on the 
 #' precision values in the mode 1 projection (A) matrix. Set this to a large value (ex. 1e10)
 #' to encourage sparsity in mode 1 predictors. Note this should stay balanced with m1.alpha 
-#' so thir product is 1. (1e10)}
-#' \item{m2.beta}{Numeric. Same as above for mode 2. (1e10)}
+#' so thir product is 1. (1)}
+#' \item{m2.beta}{Numeric. Same as above for mode 2. (1)}
 #' \item{m3.beta}{Numeric. Same as above for mode 3. (1)}
 #' \item{A.samp.sd}{Numeric. Standard deviation used when initializing values in the projection
 #' (A) matrices. (1)}
@@ -58,21 +58,21 @@
 #' \item{core.0D.alpha}{Numeric. Prior for the 'scale' parameter of the gamma distribution on the 
 #' precision value in the element of the core tensor corresponding to the intercept for all
 #' three modes (core.mean[1,1,1]). Only used for Tucker models when all H intercepts are true. 
-#' Set this to a small value (ex. 1e-10) to encourage sparsity in core predictor. (1e-10)}
+#' Set this to a small value (ex. 1e-10) to encourage sparsity in core predictor. (1)}
 #' \item{core.1D.alpha}{Numeric. As above for values corresponding to the intercepts for 
-#' two modes (core.mean[1,1,], core.mean[1,,1] and core.mean[,1,1]). (1e-10)}
+#' two modes (core.mean[1,1,], core.mean[1,,1] and core.mean[,1,1]). (1)}
 #' \item{core.2D.alpha}{Numeric. As above for values corresponding to the intercepts for 
-#' one mode (core.mean[1,,], core.mean[,1,] and core.mean[,,1]). (1e-10)}
-#' \item{core.3D.alpha}{Numeric. As above for values not corresponding to intercepts. (1e-10)}
-#' \item{core.0D.beta}{Numeric. As above but a prior for the 'scale' parameter. (1e10)}
-#' \item{core.1D.beta}{Numeric. As above but a prior for the 'scale' parameter. (1e10)}
-#' \item{core.2D.beta}{Numeric. As above but a prior for the 'scale' parameter. (1e10)}
-#' \item{core.3D.beta}{Numeric. As above but a prior for the 'scale' parameter. (1e10)}
+#' one mode (core.mean[1,,], core.mean[,1,] and core.mean[,,1]). (1)}
+#' \item{core.3D.alpha}{Numeric. As above for values not corresponding to intercepts. (1)}
+#' \item{core.0D.beta}{Numeric. As above but a prior for the 'scale' parameter. (1)}
+#' \item{core.1D.beta}{Numeric. As above but a prior for the 'scale' parameter. (1)}
+#' \item{core.2D.beta}{Numeric. As above but a prior for the 'scale' parameter. (1)}
+#' \item{core.3D.beta}{Numeric. As above but a prior for the 'scale' parameter. (1)}
 #' \item{m1.sigma2}{Numeric. Variance for the mode 1 latent (H) matrix. Set small to link the
 #' values in the latent matrices to the product of the input and projection matrices. If there 
 #' is no input data, set to one or larger. (0.01)}
 #' \item{m2.sigma2}{Numeric. As above for mode 2. (0.01)}
-#' \item{m3.sigma2}{Numeric. As above for mode 3. (1)}
+#' \item{m3.sigma2}{Numeric. As above for mode 3. (0.01)}
 #' \item{sigma2}{Numeric. Variance parameter for the response tensor or 'auto' (default). 
 #' If set to 'auto' then the square-root of the variance of the training responses is used.}
 #' \item{remove.start}{Numeric. The iteration to begin removing predictors if any of 
@@ -134,7 +134,7 @@ get_model_params <- function(args) {
                  lower.bnd=T, RMSE=T, exp.var=T, cor=T, time=T,
                  A1.intercept=T, A2.intercept=T, A3.intercept=T,
                  H1.intercept=F, H2.intercept=F, H3.intercept=F,
-                 R=4, R1=4, R2=4, R3=3,
+                 R=4, R1=4, R2=4, R3=4,
                  m1.alpha=1, m1.beta=1, 
                  m2.alpha=1, m2.beta=1,
                  m3.alpha=1, m3.beta=1,
