@@ -59,7 +59,10 @@ lower_bnd_CP <- function(m, d) {
                               (1-m$mode1.lambda.shape) * digamma(m$mode1.lambda.shape))
 
     m1.A.dets <- rep(0, R)
-    for(r in 1:R) m1.A.dets[r] <- determinant(m$mode1.A.cov[,,r], logarithm=T)$modulus
+    for(r in 1:R) 
+      if(is.matrix(m$mode1.A.cov[,,r])) {
+        m1.A.dets[r] <- determinant(m$mode1.A.cov[,,r], logarithm=T)$modulus
+      } else m1.A.dets[r] <- m$mode1.A.cov[,,r]
     exp.q.mode1.A <- -sum(P/2*(log.2.pi+1) -.5*m1.A.dets)
   } else {
     exp.p.mode1.lambda <- 0
@@ -102,7 +105,10 @@ lower_bnd_CP <- function(m, d) {
                                 (1-m$mode2.lambda.shape) * digamma(m$mode2.lambda.shape))
     
     m2.A.dets <- rep(0, R)
-    for(r in 1:R) m2.A.dets[r] <- determinant(m$mode2.A.cov[,,r], logarithm=T)$modulus
+    for(r in 1:R) 
+      if(is.matrix(m$mode2.A.cov[,,r])) {
+        m2.A.dets[r] <- determinant(m$mode2.A.cov[,,r], logarithm=T)$modulus
+      } else m2.A.dets[r] <- m$mode2.A.cov[,,r]
     exp.q.mode2.A <- -sum(Q/2*(log.2.pi+1) -.5*m2.A.dets)
   } else {
     exp.p.mode2.lambda <- 0
@@ -144,7 +150,10 @@ lower_bnd_CP <- function(m, d) {
                                 (1-m$mode3.lambda.shape) * digamma(m$mode3.lambda.shape))
     
     m3.A.dets <- rep(0, R)
-    for(r in 1:R) m3.A.dets[r] <- determinant(m$mode3.A.cov[,,r], logarithm=T)$modulus
+    for(r in 1:R)
+      if(is.matrix(m$mode3.A.cov[,,r])) {
+        m3.A.dets[r] <- determinant(m$mode3.A.cov[,,r], logarithm=T)$modulus
+      } else m3.A.dets[r] <- m$mode3.A.cov[,,r]
     exp.q.mode3.A <- -sum(S/2*(log.2.pi+1) -.5*m3.A.dets)
   } else {
     exp.p.mode3.lambda <- 0
