@@ -2,6 +2,7 @@
 
 export(CP_model)
 export(Tucker_model)
+export(diagonal)
 export(exp_var)
 export(get_data_params)
 export(get_influence)

@@ -437,19 +437,19 @@ Tucker_model <- R6Class("Tucker_model",
        
        # Initialize the A variance arrays with the value A.var
        if(P) {
-         for(r1 in 1:R1) mode1.A.cov[,,r1] <<- diag(A.var , P)
+         for(r1 in 1:R1) mode1.A.cov[,,r1] <<- diagonal(A.var , P)
          dimnames(mode1.A.cov) <<- list(rownames(mode1.A.mean), 
                                         rownames(mode1.A.mean),
                                         paste0('m1.r', 1:R1))
        }
        if(Q) {
-         for(r2 in 1:R2) mode2.A.cov[,,r2] <<- diag(A.var , Q)
+         for(r2 in 1:R2) mode2.A.cov[,,r2] <<- diagonal(A.var , Q)
          dimnames(mode2.A.cov) <<- list(rownames(mode2.A.mean), 
                                         rownames(mode2.A.mean),
                                         paste0('m2.r', 1:R2))
        }
        if(S) {
-         for(r3 in 1:R3) mode3.A.cov[,,r3] <<- diag(A.var , S)
+         for(r3 in 1:R3) mode3.A.cov[,,r3] <<- diagonal(A.var , S)
          dimnames(mode3.A.cov) <<- list(rownames(mode3.A.mean), 
                                         rownames(mode3.A.mean),
                                         paste0('m3.r', 1:R3))

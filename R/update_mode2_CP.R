@@ -30,7 +30,7 @@ update_mode2_CP <- function(m, d, params) {
   if(Q != 0) { # If there is no input data, skip updates for lambda and A
     if(params$verbose) print("Updating prior lambda vector for mode 2")
     m2.A.var <- matrix(0, Q, R)
-    for(r in 1:R) m2.A.var[,r] <- diag(m$mode2.A.cov[,,r])
+    for(r in 1:R) m2.A.var[,r] <- diagonal(m$mode2.A.cov[,,r])
     if(params$row.share) {
       m$mode2.lambda.scale <- 1/(.5*(rowSums(m$mode2.A.mean^2 + m2.A.var)) + 1/m$m2.beta)
     } else m$mode2.lambda.scale <- 1/(.5*(m$mode2.A.mean^2 + m2.A.var) + 1/m$m2.beta)
@@ -40,9 +40,9 @@ update_mode2_CP <- function(m, d, params) {
     lambda.exp <- m$mode2.lambda.shape * m$mode2.lambda.scale
     for(r in 1:R) {
       if(params$row.share) {
-        m$mode2.A.cov[,,r] <- chol2inv(chol(diag(lambda.exp) + (1/m$m2.sigma2) * m$m2Xm2X))
+        m$mode2.A.cov[,,r] <- chol2inv(chol(diagonal(lambda.exp) + (1/m$m2.sigma2) * m$m2Xm2X))
       } else
-        m$mode2.A.cov[,,r] <- chol2inv(chol(diag(lambda.exp[,r]) + (1/m$m2.sigma2) * m$m2Xm2X))
+        m$mode2.A.cov[,,r] <- chol2inv(chol(diagonal(lambda.exp[,r]) + (1/m$m2.sigma2) * m$m2Xm2X))
     }
     
     # Update A means

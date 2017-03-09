@@ -39,7 +39,7 @@ lower_bnd_CP <- function(m, d) {
                                 m$m1.alpha * safe_log(m$m1.beta) - lgamma(m$m1.alpha))
 
     m1.A.var <- matrix(0, P, R) # This could be stored earlier
-    for(r in 1:R) m1.A.var[,r] <- diag(m$mode1.A.cov[,,r])
+    for(r in 1:R) m1.A.var[,r] <- diagonal(m$mode1.A.cov[,,r])
     
     exp.p.mode1.A <- -.5*P*R*log.2.pi + .5*sum(exp.log.mode1.lambda - exp.mode1.lambda * 
                                                (m$mode1.A.mean^2 + m1.A.var))
@@ -81,7 +81,7 @@ lower_bnd_CP <- function(m, d) {
                                 m$m2.alpha * safe_log(m$m2.beta) - lgamma(m$m2.alpha))
     
     m2.A.var <- matrix(0, Q, R) # This could be stored earlier
-    for(r in 1:R) m2.A.var[,r] <- diag(m$mode2.A.cov[,,r])
+    for(r in 1:R) m2.A.var[,r] <- diagonal(m$mode2.A.cov[,,r])
     
     exp.p.mode2.A <- -.5*Q*R*log.2.pi + .5*sum(exp.log.mode2.lambda - exp.mode2.lambda * 
                                                  (m$mode2.A.mean^2 + m2.A.var))
@@ -124,7 +124,7 @@ lower_bnd_CP <- function(m, d) {
                                m$m3.alpha * safe_log(m$m3.beta) - lgamma(m$m3.alpha))
     
     m3.A.var <- matrix(0, S, R) # This could be stored earlier
-    for(r in 1:R) m3.A.var[,r] <- diag(m$mode3.A.cov[,,r])
+    for(r in 1:R) m3.A.var[,r] <- diagonal(m$mode3.A.cov[,,r])
     
     exp.p.mode3.A <- -.5*S*R*log.2.pi + .5*sum(exp.log.mode3.lambda - exp.mode3.lambda * 
                                                  (m$mode3.A.mean^2 + m3.A.var))

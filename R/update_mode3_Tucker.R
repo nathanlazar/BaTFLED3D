@@ -41,7 +41,7 @@ update_mode3_Tucker <- function(m, d, params) {
     if(params$verbose) print("Updating prior lambda vector for mode 3")
     
     m3.A.var <- matrix(0, S, R3)
-    for(r3 in 1:R3) m3.A.var[,r3] <- diag(m$mode3.A.cov[,,r3])
+    for(r3 in 1:R3) m3.A.var[,r3] <- diagonal(m$mode3.A.cov[,,r3])
     if(params$row.share) {
       m$mode3.lambda.scale <- 1/(.5*(rowSums(m$mode3.A.mean^2 + m3.A.var)) + 1/m$m3.beta)
     } else m$mode3.lambda.scale <- 1/(.5*(m$mode3.A.mean^2 + m3.A.var) + 1/m$m3.beta)
@@ -51,9 +51,9 @@ update_mode3_Tucker <- function(m, d, params) {
     lambda.exp <- m$mode3.lambda.shape * m$mode3.lambda.scale
     for(r3 in 1:R3) {
       if(params$row.share) {
-        m$mode3.A.cov[,,r3] <- chol2inv(chol(diag(lambda.exp) + (1/m$m3.sigma2) * m$m3Xm3X))
+        m$mode3.A.cov[,,r3] <- chol2inv(chol(diagonal(lambda.exp) + (1/m$m3.sigma2) * m$m3Xm3X))
       } else
-        m$mode3.A.cov[,,r3] <- chol2inv(chol(diag(lambda.exp[,r3]) + (1/m$m3.sigma2) * m$m3Xm3X))
+        m$mode3.A.cov[,,r3] <- chol2inv(chol(diagonal(lambda.exp[,r3]) + (1/m$m3.sigma2) * m$m3Xm3X))
     }
 
     # Update each column of A means
