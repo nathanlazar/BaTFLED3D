@@ -2,29 +2,32 @@
 % Please edit documentation in R/kernelize.R
 \name{kernelize}
 \alias{kernelize}
-\title{Transform a matrix of input data into a matrix of concatenated kernel matrices}
+\title{Transform a matrix of input data into a matrix of kernel simmilarities values}
 \usage{
-kernelize(m, sigma2 = 100)
+kernelize(m1, m2 = NA, s = 1)
 }
 \arguments{
-\item{m}{matrix on which to compute kernels}
+\item{m1}{matrix on samples X features to compute kernels on}
 
-\item{sigma2}{numeric bandwidth (variance) for Gaussian kernels (default: 100)}
+\item{m2}{matrix of samples X features to compute kernels with respect to.}
+
+\item{s}{numeric multiplier of standard deviation for the Gaussian kernels (default:1).}
 }
 \value{
-m.kern matrix with the kernels concatenated column-wise
+matrix of similarities between rows of m1 and rows of m2.
 }
 \description{
-The input matrix should have samples as the rows and features as columns. A kernel will 
-computed across all training data for each unique column category. The column names
-should begin with the category. E.g. for a cell line input matrix the column names
-may be snp.<gene>, meth.<loci>, etc. and this function will produce similarity kernels
-for all snp data separately from the methylation data.
+The input matrices should have samples as the rows and features as columns. A kernel will 
+computed across all samples in the first matrix with respect to the samples in the second matrix.
+The two matrices must have the same features. If all features are binary 0,1, then
+the Jaccard similarity kernel will be used, otherwise, a Gaussian kernel with standard deviation
+equal to s times the mean distances between samples.
 }
 \examples{
-m <- matrix(rnorm(800), 8, 100, dimnames=list(paste0('sample.', 1:8), 
-                          c(paste0('rna.', 1:20), paste0('meth.', 1:30), paste0('mut.', 1:50))))
-m[,51:100] <- rbinom(8*50, 1, 0.5)
-m.kern <- kernelize(m)
+m1 <- matrix(rnorm(200), 8, 25, dimnames=list(paste0('sample.', 1:8), paste0('feat.', 1:25)))
+m2 <- matrix(rnorm(100), 4, 25, dimnames=list(paste0('sample.', 9:12), paste0('feat.', 1:25)))
+kernelize(m1, m1)
+kernelize(m1, m1, s=.5)
+kernelize(m2, m1)
 }
 
