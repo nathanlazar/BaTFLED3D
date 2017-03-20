@@ -44,7 +44,7 @@ kernelize <- function(m1, m2=NA, s=1) {
       D <- as.matrix(dist(m1))
     } else {
       D <- as.matrix(dist(rbind(m1, m2)))
-      D <- D[1:nrow(m1), (nrow(m1) + 1):(nrow(m1) + nrow(m2))]
+      D <- D[1:nrow(m1), (nrow(m1) + 1):(nrow(m1) + nrow(m2)),drop=F]
     }
     d_mean <- mean(as.matrix(dist(m2)))
     sigma2 <- (s * d_mean)^2
