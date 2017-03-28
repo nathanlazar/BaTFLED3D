@@ -9,6 +9,8 @@ diagonal(x, len = NA, ...)
 \arguments{
 \item{x}{A vector, matrix or array with third mode length 1}
 
+\item{len}{numeric dimensions of new diagonal matrix to me made. Recycles values in x.}
+
 \item{...}{parameters passed to diag}
 }
 \value{
@@ -22,6 +24,7 @@ Version of diag that has more consistent behavior
 diagonal(c(1,3))
 diagonal(matrix(1:6, 2,3))
 diagonal(5)
+diagonal(c(5,2),3)
 diagonal(array(1:12, dim=c(3,4,1)))
 }
 

@@ -71,10 +71,11 @@ m1m2.test.data <- input_data$new(mode1.X=toy$mode1.X[1:2,-1],
 model.params <- get_model_params(c('decomp=Tucker'))
 toy.model <- mk_model(train.data, model.params)
 toy.model$rand_init(model.params)
+toy.model$iter <- 1
 
 test.results <- numeric(0)
-test_results(m=toy.model, d=train.data, test.results=test.results,
-             warm.resp=warm.resp, test.m1=m1.test.data, test.m2=m2.test.data, 
+test_results(m=toy.model, d=train.data, warm.resp=warm.resp, 
+             test.m1=m1.test.data, test.m2=m2.test.data, 
              test.m1m2=m1m2.test.data)
 }
 

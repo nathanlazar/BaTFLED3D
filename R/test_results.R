@@ -48,10 +48,11 @@
 #' model.params <- get_model_params(c('decomp=Tucker'))
 #' toy.model <- mk_model(train.data, model.params)
 #' toy.model$rand_init(model.params)
+#' toy.model$iter <- 1
 #' 
 #' test.results <- numeric(0)
-#' test_results(m=toy.model, d=train.data, test.results=test.results,
-#'              warm.resp=warm.resp, test.m1=m1.test.data, test.m2=m2.test.data, 
+#' test_results(m=toy.model, d=train.data, warm.resp=warm.resp, 
+#'              test.m1=m1.test.data, test.m2=m2.test.data, 
 #'              test.m1m2=m1m2.test.data)
 
 test_results <- function(m, d, test.results=numeric(0), verbose=T,
@@ -112,17 +113,13 @@ test_results <- function(m, d, test.results=numeric(0), verbose=T,
     }
   } else res <- rbind(test.results, NA)
 
-  rmse <- function(obs, pred, stdev=sd(d$resp, na.rm=T)) {
-    sqrt(mean((obs-pred)^2, na.rm=T))/stdev
-  }
-
   if(length(warm.resp)) {
     warm.preds <- test(d, m)[is.na(d$resp)]
-    res$warm.RMSE[m$iter] <- rmse(warm.resp, warm.preds)
+    res$warm.RMSE[m$iter] <- nrmse(warm.resp, warm.preds)
     warm.preds.clip <- warm.preds
     warm.preds.clip[warm.preds.clip < min(d$resp, na.rm=T)] <- min(d$resp, na.rm=T)
     warm.preds.clip[warm.preds.clip > max(d$resp, na.rm=T)] <- max(d$resp, na.rm=T)
-    res$warm.RMSE.clip[m$iter] <- rmse(warm.resp, warm.preds.clip)
+    res$warm.RMSE.clip[m$iter] <- nrmse(warm.resp, warm.preds.clip)
     res$warm.exp.var[m$iter] <- exp_var(warm.resp, warm.preds)
     res$warm.exp.var.clip[m$iter] <- exp_var(warm.resp, warm.preds.clip)
     res$warm.p.cor[m$iter] <- tryCatch(cor(warm.resp, warm.preds, use='complete.obs'), error=function(e) NA)
@@ -141,13 +138,13 @@ test_results <- function(m, d, test.results=numeric(0), verbose=T,
     }
   }
   
-  if(length(test.m1)) if(sum(!is.na(test.m1$resp))) {
+  if(length(test.m1) && sum(!is.na(test.m1$resp))) {
     m1.cold.preds <- test(d=test.m1, m=m)
-    res$m1.RMSE[m$iter] <- rmse(test.m1$resp, m1.cold.preds)
+    res$m1.RMSE[m$iter] <- nrmse(test.m1$resp, m1.cold.preds)
     m1.cold.preds.clip <- m1.cold.preds
     m1.cold.preds.clip[m1.cold.preds.clip < min(d$resp, na.rm=T)] <- min(d$resp, na.rm=T)
     m1.cold.preds.clip[m1.cold.preds.clip > max(d$resp, na.rm=T)] <- max(d$resp, na.rm=T)
-    res$m1.RMSE.clip[m$iter] <- rmse(test.m1$resp, m1.cold.preds.clip)
+    res$m1.RMSE.clip[m$iter] <- nrmse(test.m1$resp, m1.cold.preds.clip)
     res$m1.exp.var[m$iter] <- exp_var(test.m1$resp, m1.cold.preds)
     res$m1.exp.var.clip[m$iter] <- exp_var(test.m1$resp, m1.cold.preds.clip)
     res$m1.p.cor[m$iter] <- tryCatch(cor(test.m1$resp, m1.cold.preds, use='complete.obs'), error=function(e) NA)
@@ -168,11 +165,11 @@ test_results <- function(m, d, test.results=numeric(0), verbose=T,
   
   if(length(test.m2))  if(sum(!is.na(test.m2$resp))) {
     m2.cold.preds <- test(d=test.m2, m=m)
-    res$m2.RMSE[m$iter] <- rmse(test.m2$resp, m2.cold.preds)
+    res$m2.RMSE[m$iter] <- nrmse(test.m2$resp, m2.cold.preds)
     m2.cold.preds.clip <- m2.cold.preds
     m2.cold.preds.clip[m2.cold.preds.clip < min(d$resp, na.rm=T)] <- min(d$resp, na.rm=T)
     m2.cold.preds.clip[m2.cold.preds.clip > max(d$resp, na.rm=T)] <- max(d$resp, na.rm=T)
-    res$m2.RMSE.clip[m$iter] <- rmse(test.m2$resp, m2.cold.preds.clip)
+    res$m2.RMSE.clip[m$iter] <- nrmse(test.m2$resp, m2.cold.preds.clip)
     res$m2.exp.var[m$iter] <- exp_var(test.m2$resp, m2.cold.preds)
     res$m2.exp.var.clip[m$iter] <- exp_var(test.m2$resp, m2.cold.preds.clip)
     res$m2.p.cor[m$iter] <- tryCatch(cor(test.m2$resp, m2.cold.preds, use='complete.obs'), error=function(e) NA)
@@ -193,11 +190,11 @@ test_results <- function(m, d, test.results=numeric(0), verbose=T,
 
   if(length(test.m3)) if(sum(!is.na(test.m3$resp))) {
     m3.cold.preds <- test(d=test.m3, m=m)
-    res$m3.RMSE[m$iter] <- rmse(test.m3$resp, m3.cold.preds)
+    res$m3.RMSE[m$iter] <- nrmse(test.m3$resp, m3.cold.preds)
     m3.cold.preds.clip <- m3.cold.preds
     m3.cold.preds.clip[m3.cold.preds.clip < min(d$resp, na.rm=T)] <- min(d$resp, na.rm=T)
     m3.cold.preds.clip[m3.cold.preds.clip > max(d$resp, na.rm=T)] <- max(d$resp, na.rm=T)
-    res$m3.RMSE.clip[m$iter] <- rmse(test.m3$resp, m3.cold.preds.clip)
+    res$m3.RMSE.clip[m$iter] <- nrmse(test.m3$resp, m3.cold.preds.clip)
     res$m3.exp.var[m$iter] <- exp_var(test.m3$resp, m3.cold.preds)
     res$m3.exp.var.clip[m$iter] <- exp_var(test.m3$resp, m3.cold.preds.clip)
     res$m3.p.cor[m$iter] <- tryCatch(cor(test.m3$resp, m3.cold.preds, use='complete.obs'), error=function(e) NA)
@@ -218,11 +215,11 @@ test_results <- function(m, d, test.results=numeric(0), verbose=T,
 
   if(length(test.m1m2)) if(sum(!is.na(test.m1m2$resp))) {
     m1m2.cold.preds <- test(d=test.m1m2, m=m)
-    res$m1m2.RMSE[m$iter] <- rmse(test.m1m2$resp, m1m2.cold.preds)
+    res$m1m2.RMSE[m$iter] <- nrmse(test.m1m2$resp, m1m2.cold.preds)
     m1m2.cold.preds.clip <- m1m2.cold.preds
     m1m2.cold.preds.clip[m1m2.cold.preds.clip < min(d$resp, na.rm=T)] <- min(d$resp, na.rm=T)
     m1m2.cold.preds.clip[m1m2.cold.preds.clip > max(d$resp, na.rm=T)] <- max(d$resp, na.rm=T)
-    res$m1m2.RMSE.clip[m$iter] <- rmse(test.m1m2$resp, m1m2.cold.preds.clip)
+    res$m1m2.RMSE.clip[m$iter] <- nrmse(test.m1m2$resp, m1m2.cold.preds.clip)
     res$m1m2.exp.var[m$iter] <- exp_var(test.m1m2$resp, m1m2.cold.preds)
     res$m1m2.exp.var.clip[m$iter] <- exp_var(test.m1m2$resp, m1m2.cold.preds.clip)
     res$m1m2.p.cor[m$iter] <- tryCatch(cor(test.m1m2$resp, m1m2.cold.preds, use='complete.obs'), error=function(e) NA)
@@ -243,11 +240,11 @@ test_results <- function(m, d, test.results=numeric(0), verbose=T,
   
   if(length(test.m1m3)) if(sum(!is.na(test.m1m3$resp))) {
     m1m3.cold.preds <- test(d=test.m1m3, m=m)
-    res$m1m3.RMSE[m$iter] <- rmse(test.m1m3$resp, m1m3.cold.preds)
+    res$m1m3.RMSE[m$iter] <- nrmse(test.m1m3$resp, m1m3.cold.preds)
     m1m3.cold.preds.clip <- m1m3.cold.preds
     m1m3.cold.preds.clip[m1m3.cold.preds.clip < min(d$resp, na.rm=T)] <- min(d$resp, na.rm=T)
     m1m3.cold.preds.clip[m1m3.cold.preds.clip > max(d$resp, na.rm=T)] <- max(d$resp, na.rm=T)
-    res$m1m3.RMSE.clip[m$iter] <- rmse(test.m1m3$resp, m1m3.cold.preds.clip)
+    res$m1m3.RMSE.clip[m$iter] <- nrmse(test.m1m3$resp, m1m3.cold.preds.clip)
     res$m1m3.exp.var[m$iter] <- exp_var(test.m1m3$resp, m1m3.cold.preds)
     res$m1m3.exp.var.clip[m$iter] <- exp_var(test.m1m3$resp, m1m3.cold.preds.clip)
     res$m1m3.p.cor[m$iter] <- tryCatch(cor(test.m1m3$resp, m1m3.cold.preds, use='complete.obs'), error=function(e) NA)
@@ -268,11 +265,11 @@ test_results <- function(m, d, test.results=numeric(0), verbose=T,
   
   if(length(test.m2m3)) if(sum(!is.na(test.m2m3$resp))) {
     m2m3.cold.preds <- test(d=test.m2m3, m=m)
-    res$m2m3.RMSE[m$iter] <- rmse(test.m2m3$resp, m2m3.cold.preds)
+    res$m2m3.RMSE[m$iter] <- nrmse(test.m2m3$resp, m2m3.cold.preds)
     m2m3.cold.preds.clip <- m2m3.cold.preds
     m2m3.cold.preds.clip[m2m3.cold.preds.clip < min(d$resp, na.rm=T)] <- min(d$resp, na.rm=T)
     m2m3.cold.preds.clip[m2m3.cold.preds.clip > max(d$resp, na.rm=T)] <- max(d$resp, na.rm=T)
-    res$m2m3.RMSE.clip[m$iter] <- rmse(test.m2m3$resp, m2m3.cold.preds.clip)
+    res$m2m3.RMSE.clip[m$iter] <- nrmse(test.m2m3$resp, m2m3.cold.preds.clip)
     res$m2m3.exp.var[m$iter] <- exp_var(test.m2m3$resp, m2m3.cold.preds)
     res$m2m3.exp.var.clip[m$iter] <- exp_var(test.m2m3$resp, m2m3.cold.preds.clip)
     res$m2m3.p.cor[m$iter] <- tryCatch(cor(test.m2m3$resp, m2m3.cold.preds, use='complete.obs'), error=function(e) NA)
@@ -293,11 +290,11 @@ test_results <- function(m, d, test.results=numeric(0), verbose=T,
   
   if(length(test.m1m2m3)) if(sum(!is.na(test.m1m2m3$resp))) {
     m1m2m3.cold.preds <- test(d=test.m1m2m3, m=m)
-    res$m1m2m3.RMSE[m$iter] <- rmse(test.m1m2m3$resp, m1m2m3.cold.preds)
+    res$m1m2m3.RMSE[m$iter] <- nrmse(test.m1m2m3$resp, m1m2m3.cold.preds)
     m1m2m3.cold.preds.clip <- m1m2m3.cold.preds
     m1m2m3.cold.preds.clip[m1m2m3.cold.preds.clip < min(d$resp, na.rm=T)] <- min(d$resp, na.rm=T)
     m1m2m3.cold.preds.clip[m1m2m3.cold.preds.clip > max(d$resp, na.rm=T)] <- max(d$resp, na.rm=T)
-    res$m1m2m3.RMSE.clip[m$iter] <- rmse(test.m1m2m3$resp, m1m2m3.cold.preds.clip)
+    res$m1m2m3.RMSE.clip[m$iter] <- nrmse(test.m1m2m3$resp, m1m2m3.cold.preds.clip)
     res$m1m2m3.exp.var[m$iter] <- exp_var(test.m1m2m3$resp, m1m2m3.cold.preds)
     res$m1m2m3.exp.var.clip[m$iter] <- exp_var(test.m1m2m3$resp, m1m2m3.cold.preds.clip)
     res$m1m2m3.p.cor[m$iter] <- tryCatch(cor(test.m1m2m3$resp, m1m2m3.cold.preds, use='complete.obs'), error=function(e) NA)
