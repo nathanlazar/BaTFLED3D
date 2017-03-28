@@ -17,12 +17,12 @@
 
 exp_var <- function(obs, pred, verbose=F) {
   # Get the explained variance for a set of predictions
-  if(is.data.frame(obs)) obs <- unlist(obs)
-  if(!is.vector(obs)) obs <- as.vector(obs)
-  if(is.data.frame(pred)) pred <- unlist(pred)
-  if(!is.vector(pred)) pred <- as.vector(pred)
-  exp.var <- 1 - var(obs - pred, na.rm=T)/var(obs, na.rm=T)
-  
+  exp.var <- 1- mean((obs-pred)^2, na.rm=T)/mean((obs-mean(obs, na.rm=T))^2, na.rm=T)
+  # if(is.data.frame(obs)) obs <- unlist(obs)
+  # if(!is.vector(obs)) obs <- as.vector(obs)
+  # if(is.data.frame(pred)) pred <- unlist(pred)
+  # if(!is.vector(pred)) pred <- as.vector(pred)
+  # exp.var <- 1 - var(obs - pred, na.rm=T)/var(obs, na.rm=T)
   if(verbose) print(sprintf("Explained variance: %.4f", exp.var))
   exp.var
 }
