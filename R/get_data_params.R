@@ -26,9 +26,9 @@
 #' \item{m3.cols}{Numeric. Number of columns (predictors) for mode 3. (0)}
 #' \item{R}{Numeric. If \code{decomp=='CP'} the dimension of the latent space for all modes. (4)}
 #' \item{R1}{Numeric. If \code{decomp=='Tucker'} the dimension of the core (latent space) for
-#' mode 1. (4)}
+#' mode 1. (3)}
 #' \item{R2}{Numeric. If \code{decomp=='Tucker'} the dimension of the core (latent space) for
-#' mode 2. (4)}
+#' mode 2. (3)}
 #' \item{R3}{Numeric. If \code{decomp=='Tucker'} the dimension of the core (latent space) for
 #' mode 3. (3)}
 #' \item{A1.intercept}{Logical. Should a column of 1s be added to the input data for mode 1. (TRUE)}
@@ -96,7 +96,7 @@ get_data_params <- function(args) {
   params <- list(decomp='Tucker', row.share=T, seed=NA, scale=T,
                  m1.rows=20, m2.rows=25, m3.rows=10,
                  m1.cols=100, m2.cols=150, m3.cols=50,
-                 R=4, R1=4, R2=4, R3=3,
+                 R=3, R1=3, R2=3, R3=3,
                  A1.const.prob=1, A2.const.prob=1, A3.const.prob=1,
                  m1.true=15, m2.true=20, m3.true=0,
                  A1.intercept=T, A2.intercept=T, A3.intercept=T,

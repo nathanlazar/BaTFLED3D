@@ -12,7 +12,7 @@ vignette: >
 
 BaTFLED assumes a generative model where matrices of predictors are multiplied through projection matrices to form latent representations of the input data. These latent representations vectors are analogous to principal component vectors. Matrices containing the latent vectors are combined to form the response tensor which, in this case, are measures of the growth of cell lines after treatment with different drugs at different doses.
 
-The algorithm learns distributions on values in the projection matrices and latent matrices using a Bayesian framework. Prior distributions on the projection matrices can encourge a sparse representation of the input data. Values in the model are learned through variational approximation which maximizes a lower bound on the posterior likelihood by iteratively updating values in the model. This process is deterministic given a random initialization and update ordering.
+The algorithm learns distributions on values in the projection matrices and latent matrices using a Bayesian framework. Prior distributions on the projection matrices can encourage a sparse representation of the input data. Values in the model are learned through variational approximation which maximizes a lower bound on the posterior likelihood by iteratively updating values in the model. This process is deterministic given a random initialization and update ordering.
 
 ```{r, out.width = "100%", results='hide', include=F}
 knitr::include_graphics("BaTFLED_model.png")
@@ -186,7 +186,7 @@ if(model.params$decomp=='Tucker') {
   core.reorder <- trained$core.mean[abs(m1.H.order), abs(m2.H.order), abs(m3.H.order)]
   core.reorder <- core.reorder * outer(sign(m1.H.order), outer(sign(m2.H.order), sign(m3.H.order)))
   im_2_mat(toy$core[,,1], core.reorder[,,1], sort=F, center=T, scale='all',
-           main1='Core mode 1 slice true', main2='Core mode 1 slice learned')
+           main1='Core slice true', main2='Core slice learned')
 }
 ```
 

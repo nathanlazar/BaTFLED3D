@@ -26,9 +26,9 @@ standard deviation 1. (TRUE)}
 \item{m3.cols}{Numeric. Number of columns (predictors) for mode 3. (0)}
 \item{R}{Numeric. If \code{decomp=='CP'} the dimension of the latent space for all modes. (4)}
 \item{R1}{Numeric. If \code{decomp=='Tucker'} the dimension of the core (latent space) for
-mode 1. (4)}
+mode 1. (3)}
 \item{R2}{Numeric. If \code{decomp=='Tucker'} the dimension of the core (latent space) for
-mode 2. (4)}
+mode 2. (3)}
 \item{R3}{Numeric. If \code{decomp=='Tucker'} the dimension of the core (latent space) for
 mode 3. (3)}
 \item{A1.intercept}{Logical. Should a column of 1s be added to the input data for mode 1. (TRUE)}

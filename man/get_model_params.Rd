@@ -31,10 +31,10 @@ training. (T)}
 \item{H1.intercept}{Logical. Add a constant column to the mode 1 latent (H) matrix. (F)}
 \item{H2.intercept}{Logical. Add a constant column to the mode 2 latent (H) matrix. (F)}
 \item{H3.intercept}{Logical. Add a constant column to the mode 3 latent (H) matrix. (F)}
-\item{R}{Numeric. Number of latent factors used in a CP model. (4)}
-\item{R1}{Numeric. Number of latent factors used for mode 1 in a Tucker decomposition. (4)}
-\item{R2}{Numeric. Number of latent factors used for mode 2 in a Tucker decomposition. (4)}
-\item{R3}{Numeric. Number of latent factors used for mode 3 in a Tucker decomposition. (4)}
+\item{R}{Numeric. Number of latent factors used in a CP model. (3)}
+\item{R1}{Numeric. Number of latent factors used for mode 1 in a Tucker decomposition. (3)}
+\item{R2}{Numeric. Number of latent factors used for mode 2 in a Tucker decomposition. (3)}
+\item{R3}{Numeric. Number of latent factors used for mode 3 in a Tucker decomposition. (3)}
 \item{core.updates}{Numeric. Number of core elements to update each round for stochastic training. (all)}
 \item{m1.alpha}{Numeric. Prior for the 'shape' parameter of the gamma distribution on the 
 precision values in the mode 1 projection (A) matrix. Set this to a small value (ex. 1e-10)
