@@ -10,7 +10,7 @@
 
 plot_test_RMSE <- function(test.results, ylim='default', mean=F, main='Test RMSEs') {
   # Sort by row names so colors are consistent for different response measures
-  test.results <- test.results[,sort(names(test.results))]
+  # test.results <- test.results[,sort(names(test.results))]
 
   if(ylim=='default') ylim <- c(0, 1.5)
   if(is.na(ylim)) 
@@ -29,10 +29,10 @@ plot_test_RMSE <- function(test.results, ylim='default', mean=F, main='Test RMSE
   if(mean) {
     legend <- c(types, 'predicting the mean')
     colrs = c(colrs, 'black')
-    pch=c(rep(20,4),45)
+    pch=c(rep(20,n),45)
   } else {
     legend <- types
-    pch=rep(20,4)
+    pch=rep(20,n)
   }
   
   # if(is.na(main)) {

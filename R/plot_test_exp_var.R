@@ -31,10 +31,10 @@ plot_test_exp_var <- function(test.results, ylim='default', mean=F, main=NA) {
   if(mean) {
     legend <- c(types, 'predicting the mean')
     colrs = c(colrs, 'black')
-    pch=c(rep(20,4),45)
+    pch=c(rep(20,n),45)
   } else {
     legend <- types
-    pch=rep(20,4)
+    pch=rep(20,n)
   }
 
   # if(is.na(main)) {
