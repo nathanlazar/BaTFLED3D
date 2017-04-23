@@ -4,19 +4,21 @@
 \alias{plot_test_cor}
 \title{Plot correlation results from test data}
 \usage{
-plot_test_cor(test.results, ylim = "default", mean = F, main = NA,
-  method = "pearson")
+plot_test_cor(test.results, ylim = "default", main = NA,
+  method = "pearson", baselines = c(warm = NA, m1 = NA, m2 = NA, m3 = NA,
+  m1m2 = NA, m1m3 = NA, m2m3 = NA, m1m2m3 = NA))
 }
 \arguments{
 \item{test.results}{results \code{generated with test_results}}
 
 \item{ylim}{limits for the y-axis (NA)}
 
-\item{mean}{Logical indicating whether to plot horizontal lines for mean predictions}
-
 \item{main}{Main title of the plot}
 
 \item{method}{Either 'pearson' or 'spearman' correlations}
+
+\item{baselines}{named vector of baseline values to draw as dotted horizontal 
+lines e.g. c('warm'=0, 'm1'=0, 'm1m2'=0, 'm1m2m3'=0)}
 }
 \description{
 Plot correlation results from test data

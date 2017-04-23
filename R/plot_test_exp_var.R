@@ -4,22 +4,24 @@
 #'
 #' @export
 #' @param test.results an object generated with \code{test_results}
+#' @param baselines named vector of baseline values to draw as dotted horizontal 
+#' lines e.g. c('warm'=0, 'm1'=0, 'm1m2'=0, 'm1m2m3'=0)
 #' @param ylim Limits of the y-axis.
-#' @param mean Logical to plot horizontal lines for mean prediction (FALSE)
 #' @param main Main title of the plot
 
-plot_test_exp_var <- function(test.results, ylim='default', mean=F, main=NA) {
-  # Sort by row names so colors are consistent for different response measures
-  test.results <- test.results[,sort(names(test.results))]
-  
-  exp.var.cols <- grep('exp.var$', names(test.results))
+plot_test_exp_var <- function(test.rersults, ylim='default', main=NA,
+  baselines=c('warm'=NA, 'm1'=NA, 'm2'=NA, 'm3'=NA, 'm1m2'=NA, 'm1m3'=NA, 'm2m3'=NA, 'm1m2m3'=NA)) {
+  # Subset to just explained variance data
+  sub.results <- test.results[,grepl('exp.var', names(test.results))]
+  types <- paste0(c('warm', 'm1', 'm2', 'm3', 'm1m2', 'm1m3', 'm2m3', 'm1m2m3'), '.exp.var')
+  sub.results <- sub.results[,types[types %in% names(test.results)]]
 
   if(ylim=='default') {
     ylim <- c(-1,1)
   } else if(ylim=='auto') 
-    ylim <- range(test.results[-1,exp.var.cols], na.rm=T)
+    ylim <- range(sub.results, na.rm=T)
 
-  types <- sub('.exp.var', '', names(test.results)[exp.var.cols])
+  types <- sub('.exp.var', '', names(sub.results))
   types <- sub('^m', 'Mode ', types)
   types <- gsub('m', ' & ', types)
   types <- sub('war & ', 'Warm', types)
@@ -28,7 +30,14 @@ plot_test_exp_var <- function(test.results, ylim='default', mean=F, main=NA) {
   n <- length(types)
   colrs <- RColorBrewer::brewer.pal(n, "Set1")
   
-  if(mean) {
+  plot(c(0, nrow(sub.results)), ylim, xlab='Iteration', 
+       ylab='Explained variance', type='n', main=main)
+  rect(par("usr")[1],par("usr")[3],par("usr")[2],par("usr")[4],col = "#ededed")
+  
+  for(i in 1:n) points(sub.results[,i], col=colrs[i], pch=20, type='b')
+  for(i in 1:n) abline(h=baselines[i], col=colrs[i], lty=2, lwd=2)
+  
+  if(sum(!is.na(baselines))) {
     legend <- c(types, 'predicting the mean')
     colrs = c(colrs, 'black')
     pch=c(rep(20,n),45)
@@ -36,18 +45,6 @@ plot_test_exp_var <- function(test.results, ylim='default', mean=F, main=NA) {
     legend <- types
     pch=rep(20,n)
   }
-
-  # if(is.na(main)) {
-  #   main <- sprintf('Warm max at %.0f, cold mode 1 max at %d \n Cold mode 2 max at %d Both cold max at %d',
-  #                   which.min(test.results$warm.exp.var), which.min(test.results$m1.exp.var),
-  #                   which.min(test.results$m2.exp.var), which.min(test.results$m1m2.exp.var))
-  # }
-  
-  plot(c(0, nrow(test.results)), ylim, xlab='Iteration', 
-       ylab='Explained variance', type='n', main=main)
-  rect(par("usr")[1],par("usr")[3],par("usr")[2],par("usr")[4],col = "#ededed")
-  for(i in 1:n) 
-    points(test.results[,exp.var.cols[i]], col=colrs[i], pch=20, type='b')
   legend(x='bottomright', bty='n', legend=legend, col=colrs, pch=pch, pt.cex=2)
 }
 

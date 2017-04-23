@@ -59,7 +59,7 @@ args <- list('decomp=Tucker',             # Should be either CP or Tucker factor
              'm2.true=10', 
              'm3.true=0',
              'R1=4', 'R2=4', 'R3=4',      # Core dimension
-             'core.spar=0.1',             # Amount of sparsity in the core [0-1], 1=no sparsity
+             'core.spar=0.5',             # Amount of sparsity in the core [0-1], 1=no sparsity
              'noise.sd=0.2'               # Amount of Gaussian noise added to responses
 )
 data.params <- get_data_params(args)
