@@ -29,9 +29,16 @@
 kernelize <- function(m1, m2=NA, s=1) {
   if(missing(m2)) m2 <- m1
 
+  # If m1 has no rows, return a matrix with no rows
+  if(!nrow(m1)) {
+    K <- matrix(NA, 0, ncol(m2))
+    colnames(K) <- rownames(m2)
+    return(K)    
+  }
+  
   if(!all.equal(colnames(m1), colnames(m2))) 
     stop('The columns must match between the two matrices')
-  
+
   # If the matrices are binary, compute Jaccard kernel
   if(min(m1, na.rm=T)==0 && max(m1, na.rm=T)==1 && length(unique(as.vector(m1)))==2 &&
      min(m2, na.rm=T)==0 && max(m2, na.rm=T)==1 && length(unique(as.vector(m2)))==2) {
