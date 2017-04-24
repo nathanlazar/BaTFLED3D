@@ -31,7 +31,7 @@ kernelize <- function(m1, m2=NA, s=1) {
 
   # If m1 has no rows, return a matrix with no rows
   if(!nrow(m1)) {
-    K <- matrix(NA, 0, ncol(m2))
+    K <- matrix(NA, 0, nrow(m2))
     colnames(K) <- rownames(m2)
     return(K)    
   }
