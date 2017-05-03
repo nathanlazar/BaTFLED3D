@@ -16,10 +16,17 @@ plot_test_exp_var <- function(test.rersults, ylim='default', main=NA,
   types <- paste0(c('warm', 'm1', 'm2', 'm3', 'm1m2', 'm1m3', 'm2m3', 'm1m2m3'), '.exp.var')
   sub.results <- sub.results[,types[types %in% names(test.results)]]
 
-  if(ylim=='default') {
-    ylim <- c(-1,1)
-  } else if(ylim=='auto') 
-    ylim <- range(sub.results, na.rm=T)
+  bl2 <- rep(NA, length(sub.results))
+  names(bl2) <- sub('.exp.var', '', names(sub.results))
+  for(i in 1:length(baselines))
+    bl2[names(baselines)[i]] <- baselines[i]
+  
+  if(typeof(ylim)=='character') {
+    if(ylim=='default') {
+      ylim <- c(-1,1)
+    } else if(ylim=='auto') 
+      ylim <- range(sub.results, na.rm=T)
+  }
 
   types <- sub('.exp.var', '', names(sub.results))
   types <- sub('^m', 'Mode ', types)
@@ -35,9 +42,14 @@ plot_test_exp_var <- function(test.rersults, ylim='default', main=NA,
   rect(par("usr")[1],par("usr")[3],par("usr")[2],par("usr")[4],col = "#ededed")
   
   for(i in 1:n) points(sub.results[,i], col=colrs[i], pch=20, type='b')
-  for(i in 1:n) abline(h=baselines[i], col=colrs[i], lty=2, lwd=2)
+  for(i in 1:n) abline(h=bl2[i], col=colrs[i], lty=2, lwd=2)
   
-  if(sum(!is.na(baselines))) {
+  keep <- apply(sub.results, 2, function(x) sum(!is.na(x)))!=0
+  types <- types[keep]
+  colrs <- colrs[keep]
+  n <- sum(keep)
+  
+  if(sum(!is.na(bl2))) {
     legend <- c(types, 'predicting the mean')
     colrs = c(colrs, 'black')
     pch=c(rep(20,n),45)

@@ -11,7 +11,7 @@ plot_test_RMSE(test.results, ylim = "default", main = "Test RMSEs",
 \arguments{
 \item{test.results}{An object created with \code{test_results}}
 
-\item{ylim}{Limits of the y-axis}
+\item{ylim}{Limits of the y-axis (default is (0, 1.5))}
 
 \item{main}{Main title of the plot}
 

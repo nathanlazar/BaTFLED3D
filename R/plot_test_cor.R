@@ -14,15 +14,26 @@ plot_test_cor <- function(test.results, ylim='default', main=NA, method='pearson
   baselines=c('warm'=NA, 'm1'=NA, 'm2'=NA, 'm3'=NA, 'm1m2'=NA, 'm1m3'=NA, 'm2m3'=NA, 'm1m2m3'=NA)) {
 
   # Subset to just correlation data data
-  if(method=='pearson') type='p.cor'
-  if(method=='spearman') type='s.cor'
+  if(method=='pearson') {
+    type='p.cor'
+    if(is.na(main)) main <- 'Pearson correlation'
+  }
+  if(method=='spearman') {
+    type='s.cor'
+    if(is.na(main)) main <- 'Spearman correlation'
+  }
   sub.results <- test.results[,grepl(type, names(test.results))]
   types <- paste0(c('warm', 'm1', 'm2', 'm3', 'm1m2', 'm1m3', 'm2m3', 'm1m2m3'), '.' ,type)
   sub.results <- sub.results[,types[types %in% names(test.results)]]
   
+  bl2 <- rep(NA, length(sub.results))
+  names(bl2) <- sub(type, '', names(sub.results))
+  for(i in 1:length(baselines))
+    bl2[names(baselines)[i]] <- baselines[i]
+  
   if(ylim=='default') { 
     ylim=c(-1, 1)
-  } else if(is.na(ylim)) ylim=range(sub.results[-1,], na.rm=T)
+  } else if(is.na(ylim[1])) ylim=range(sub.results[-1,], na.rm=T)
   
   if(method=='pearson')
     types <- sub('.p.cor', '', names(sub.results))
@@ -44,6 +55,11 @@ plot_test_cor <- function(test.results, ylim='default', main=NA, method='pearson
   rect(par("usr")[1],par("usr")[3],par("usr")[2],par("usr")[4],col = "#ededed")
   for(i in 1:n) points(sub.results[,i], col=colrs[i], pch=20, type='b')
   for(i in 1:n) abline(h=baselines[i], col=colrs[i], lty=2, lwd=2)
+
+  keep <- apply(sub.results, 2, function(x) sum(!is.na(x)))!=0
+  types <- types[keep]
+  colrs <- colrs[keep]
+  n <- sum(keep)
   
   if(sum(!is.na(baselines))) {
     legend <- c(types, 'predicting the mean')
