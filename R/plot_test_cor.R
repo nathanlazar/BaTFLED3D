@@ -17,19 +17,16 @@ plot_test_cor <- function(test.results, ylim='default', main=NA, method='pearson
   if(method=='pearson') {
     type='p.cor'
     if(is.na(main)) main <- 'Pearson correlation'
+    names(baselines) <- paste0(names(baselines), '.p.cor')
   }
   if(method=='spearman') {
     type='s.cor'
     if(is.na(main)) main <- 'Spearman correlation'
+    names(baselines) <- paste0(names(baselines), '.s.cor')
   }
   sub.results <- test.results[,grepl(type, names(test.results))]
   types <- paste0(c('warm', 'm1', 'm2', 'm3', 'm1m2', 'm1m3', 'm2m3', 'm1m2m3'), '.' ,type)
   sub.results <- sub.results[,types[types %in% names(test.results)]]
-  
-  bl2 <- rep(NA, length(sub.results))
-  names(bl2) <- sub(type, '', names(sub.results))
-  for(i in 1:length(baselines))
-    bl2[names(baselines)[i]] <- baselines[i]
   
   if(ylim=='default') { 
     ylim=c(-1, 1)
@@ -53,8 +50,10 @@ plot_test_cor <- function(test.results, ylim='default', main=NA, method='pearson
   plot(c(0, nrow(sub.results)), ylim, xlab='Iteration', 
        ylab=ylab, type='n', main=main)
   rect(par("usr")[1],par("usr")[3],par("usr")[2],par("usr")[4],col = "#ededed")
-  for(i in 1:n) points(sub.results[,i], col=colrs[i], pch=20, type='b')
-  for(i in 1:n) abline(h=baselines[i], col=colrs[i], lty=2, lwd=2)
+  for(i in 1:n) {
+    points(sub.results[,i], col=colrs[i], pch=20, type='b')
+    abline(h=baselines[names(sub.results)[i]], col=colrs[i], lty=2, lwd=2)
+  }
 
   keep <- apply(sub.results, 2, function(x) sum(!is.na(x)))!=0
   types <- types[keep]

@@ -4,7 +4,9 @@
 #' computed across all samples in the first matrix with respect to the samples in the second matrix.
 #' The two matrices must have the same features. If all features are binary 0,1, then
 #' the Jaccard similarity kernel will be used, otherwise, a Gaussian kernel with standard deviation
-#' equal to s times the mean distances between samples.
+#' equal to s times the mean euclidean distances between samples in the second matrix.
+#' If there are samples with all NA values, they will not appear in the kernel matrix columns.
+#' The row for that sample will just be all NAs.
 #' 
 #' @importFrom stats dist
 #' 
@@ -38,7 +40,14 @@ kernelize <- function(m1, m2=NA, s=1) {
   
   if(!all.equal(colnames(m1), colnames(m2))) 
     stop('The columns must match between the two matrices')
+  
+  # Remove any rows of NAs
+  m1.na.rows <- apply(m1, 1, function(x) sum(!is.na(x)))==0
+  m2.na.rows <- apply(m2, 1, function(x) sum(!is.na(x)))==0
 
+  m1 <- m1[!m1.na.rows,]
+  m2 <- m2[!m2.na.rows,]
+  
   # If the matrices are binary, compute Jaccard kernel
   if(min(m1, na.rm=T)==0 && max(m1, na.rm=T)==1 && length(unique(as.vector(m1)))==2 &&
      min(m2, na.rm=T)==0 && max(m2, na.rm=T)==1 && length(unique(as.vector(m2)))==2) {
@@ -63,5 +72,11 @@ kernelize <- function(m1, m2=NA, s=1) {
   }    
   rownames(K) <- rownames(m1)
   colnames(K) <- rownames(m2)
-  return(K)
+  
+  # Add back in any NA rows
+  full.K <- matrix(NA, length(m1.na.rows), nrow(m2), 
+                   dimnames=list(names(m1.na.rows), rownames(m2)))
+  full.K[!m1.na.rows, ] <- K
+  
+  return(full.K)
 }
