@@ -1,6 +1,6 @@
 Package: BaTFLED3D
 Title: Bayesian Tensor Factorization Linked to External Data
-Version: 0.2.7
+Version: 0.2.8
 Authors@R: person("Nathan", "Lazar", email = "nathan.lazar@gmail.com", role = c("aut", "cre"))
 Description: BaTFLED is a machine learning algorithm designed to make predictions and determine interactions in data that varies along three independent modes. For example BaTFLED was developed to predict the growth of cell lines when treated with drugs at different doses. The first mode corresponds to cell lines and incorporates predictors such as cell line genomics and growth conditions. The second mode corresponds to drugs and incorporates predictors indicating known targets and structural features. The third mode corresponds to dose and there are no dose-specific predictors (although the algorithm is capable of including predictors for the third mode if present). See 'BaTFLED3D_vignette.rmd' for a simulated example.
 Depends:

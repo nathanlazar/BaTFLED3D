@@ -45,8 +45,8 @@ kernelize <- function(m1, m2=NA, s=1) {
   m1.na.rows <- apply(m1, 1, function(x) sum(!is.na(x)))==0
   m2.na.rows <- apply(m2, 1, function(x) sum(!is.na(x)))==0
 
-  m1 <- m1[!m1.na.rows,]
-  m2 <- m2[!m2.na.rows,]
+  m1 <- m1[!m1.na.rows,drop=F]
+  m2 <- m2[!m2.na.rows,drop=F]
   
   # If the matrices are binary, compute Jaccard kernel
   if(min(m1, na.rm=T)==0 && max(m1, na.rm=T)==1 && length(unique(as.vector(m1)))==2 &&
