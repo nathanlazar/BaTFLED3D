@@ -17,370 +17,177 @@ core.rem.cut <- 1e-3
 
 # Functions
 #############################################################
-rmse <- function(obs, pred) sqrt(mean((obs-pred)^2,na.rm=T))
-
-p_cor <- function(obs, pred) {
-  if(!is.na(obs) & !is.na(pred)) {
-    return(cor(obs, pred, use='complete.obs'))
-  } else return(NA)
-}
-
-s_cor <- function(obs, pred) {
-  if(!is.na(obs) & !is.na(pred)) {
-    return(cor(obs, pred, method='spearman', use='complete.obs'))
-  } else return(NA)
-}
 
 # Read in a file to get the number of iterations
-get_iters <- function(f1) {
+get_iter_binary <- function(f1) {
   load(f1)
-  ret <- list()
-  return(trained$iter)
+  binary <- F
+  if(identical(sort(unique(train.data$resp[!is.na(train.data$resp)])), c(-1,1)))
+    binary <- T
+  ret <- list(iters=trained$iter, binary=binary)
+  return(ret)
 }
 
 # Function to load in data from runs
-loadData <- function(f, results){
+loadData <- function(f, all.results){
   #loads an RData file, and returns a list with the 
   #trained model and warm & cold RMSE vectors.
 
   load(f)
 
-  # Get std. devs of responses
-  stddev <- sd(train.data$resp, na.rm=T)
-
-  # Make a tensor of the means for each value of mode2 & mode3 for comparisons
-  I <- dim(train.data$resp)[1]
-  J <- dim(train.data$resp)[2]
-  K <- dim(train.data$resp)[3]
-
-  m1.means <- apply(train.data$resp, c(2,3), mean, na.rm=T)
-  m2.means <- apply(train.data$resp, c(1,3), mean, na.rm=T)
-  m3.means <- apply(train.data$resp, c(1,2), mean, na.rm=T)
-  m1m2.means <- apply(train.data$resp, 3, mean, na.rm=T)
-  m1m3.means <- apply(train.data$resp, 2, mean, na.rm=T)
-  m2m3.means <- apply(train.data$resp, 1, mean, na.rm=T)
-
-  m1.mean.tens <- train.data$resp
-  m2.mean.tens <- train.data$resp
-  m3.mean.tens <- train.data$resp
-  m1m2.mean.tens <- train.data$resp
-  m1m3.mean.tens <- train.data$resp
-  m2m3.mean.tens <- train.data$resp
-  m1m2m3.mean.tens <- train.data$resp
-  for(i in 1:I) m1.mean.tens[i,,] <- m1.means
-  for(j in 1:J) m2.mean.tens[,j,] <- m2.means
-  for(k in 1:K) m3.mean.tens[,,k] <- m3.means
-  for(i in 1:I) for(j in 1:J) m1m2.mean.tens[i,j,] <- m1m2.means
-  for(i in 1:I) for(k in 1:K) m1m3.mean.tens[i,,k] <- m1m3.means
-  for(j in 1:J) for(k in 1:K) m2m3.mean.tens[,j,k] <- m2m3.means
-  m1m2m3.mean.tens[,,] <- mean(train.data$resp, na.rm=T)
-
-  mean.tens.list <- list(m1=m1.mean.tens, m2=m2.mean.tens, m3=m3.mean.tens,
-                         m1m2=m1m2.mean.tens, m1m3=m1m3.mean.tens, m2m3=m2m3.mean.tens, 
-                         m1m2m3=m1m2m3.mean.tens)
-
-  fns <- list(RMSE=rmse, exp.var=exp_var, p.cor=p_cor, s.cor=s_cor)
-
-  for(m in 1:length(fns)) {
-    fn <- fns[[m]]
-    name <- names(fns)[m]
-    # Get results for training data
-    for(mode in c('m1','m2','m3','m1m2','m1m3','m2m3','m1m2m3'))
-      results$mean[name, paste0('train.', mode), fold] <- 
-        fn(train.data$resp, mean.tens.list[[mode]])/stddev
-  
-    # Get results for warm data
-    for(mode in c('m1','m2','m3','m1m2','m1m3','m2m3','m1m2m3'))
-      results$mean[name, paste0('warm.', mode), fold] <- 
-        fn(all.resp.train[is.na(train.data$resp)], 
-             mean.tens.list[[mode]][is.na(train.data$resp)])/stddev
-  
-    # Get results for modes
-    for(mode in c('m1','m2','m3','m1m2','m1m3','m2m3','m1m2m3')) {
-      dat <- get(paste0('test.data.', mode))
-      if(length(dat))
-        results$mean[name, mode, fold] <- fn(dat$resp,
-          mean.tens.list[[mode]][1:dim(dat$resp)[1],
-                                 1:dim(dat$resp)[2],
-                                 1:dim(dat$resp)[3],drop=F])/stddev
-    } 
+  # Fix warm response measures
+  warm.preds <- train.pred.resp[is.na(train.data$resp)]
+  if(warm.per > 0) {
+    results$trained['RMSE', 'warm'] <- nrmse(all.resp.train[is.na(train.data$resp)],
+                                             warm.preds)
+    results$trained['exp.var', 'warm'] <- exp_var(all.resp.train[is.na(train.data$resp)],
+                                                  warm.preds)
+    results$trained['p.cor', 'warm'] <- cor(all.resp.train[is.na(train.data$resp)],
+      warm.preds, use='complete.obs')
+    results$trained['s.cor', 'warm'] <- cor(all.resp.train[is.na(train.data$resp)],
+      warm.preds, use='complete.obs', method='spearman')
   }
 
-  results$training['lower.bnd', fold, 1:trained$iter] <-
-    trained$lower.bnd
+  for(mode in colnames(results$mean)) {
+    for(type in rownames(results$mean)) {
+      all.results$mean[type, mode, fold] <- results$mean[type, mode]
+    }
+  }
 
-  results$lower.bnd['final', fold] <- trained$lower.bnd[trained$iter]
-  results$lower.bnd['max', fold] <- max(trained$lower.bnd)
-  results$lower.bnd['which.max', fold] <- which.max(trained$lower.bnd)
-  results$lower.bnd['not.mono', fold] <- sum((trained$lower.bnd[-1] -
+  all.results$training['lower.bnd', fold, 1:trained$iter] <-
+    trained$lower.bnd
+  all.results$lower.bnd['final', fold] <- trained$lower.bnd[trained$iter]
+  all.results$lower.bnd['max', fold] <- max(trained$lower.bnd)
+  all.results$lower.bnd['which.max', fold] <- which.max(trained$lower.bnd)
+  all.results$lower.bnd['not.mono', fold] <- sum((trained$lower.bnd[-1] -
                               trained$lower.bnd[-trained$iter]) < 0)
 
-  results$training['A.RMSE', fold, 1:trained$iter] <- trained$RMSE
-  results$training['H.RMSE', fold, 1:trained$iter] <- trained$H.RMSE
-  results$training['exp.var', fold, 1:trained$iter] <- trained$exp.var
+  all.results$training['A.RMSE', fold, 1:trained$iter] <- trained$RMSE
+  all.results$training['H.RMSE', fold, 1:trained$iter] <- trained$H.RMSE
+  all.results$training['exp.var', fold, 1:trained$iter] <- trained$exp.var
   if(length(trained$p.cor))
-    results$training['p.cor', fold, 1:trained$iter] <- trained$p.cor
+    all.results$training['p.cor', fold, 1:trained$iter] <- trained$p.cor
   if(length(trained$s.cor))
-    results$training['s.cor', fold, 1:trained$iter] <- trained$s.cor
+    all.results$training['s.cor', fold, 1:trained$iter] <- trained$s.cor
 
   # Remove NA or NaN columns from test.results
   test.results <- test.results[,apply(test.results, 2, function(x) sum(!is.na(x))>0)]
 
-  if('warm.RMSE' %in% names(test.results)) {
-    results$training['warm.RMSE', fold, 1:trained$iter] <- test.results$warm.RMSE
-    results$training['warm.exp.var', fold, 1:trained$iter] <- test.results$warm.exp.var
-    if(length(test.results$warm.p.cor))
-      results$training['warm.p.cor', fold, 1:trained$iter] <- test.results$warm.p.cor
-    if(length(test.results$warm.s.cor))
-      results$training['warm.s.cor', fold, 1:trained$iter] <- test.results$warm.s.cor
-  }
-  if('m1.RMSE' %in% names(test.results)) {
-    results$training['m1.RMSE', fold, 1:trained$iter] <- test.results$m1.RMSE
-    results$training['m1.exp.var', fold, 1:trained$iter] <- test.results$m1.exp.var
-    if(length(test.results$m1.p.cor))
-      results$training['m1.p.cor', fold, 1:trained$iter] <- test.results$m1.p.cor
-    if(length(test.results$m1.s.cor))
-      results$training['m1.s.cor', fold, 1:trained$iter] <- test.results$m1.s.cor
-  }
-  if('m2.RMSE' %in% names(test.results)) {
-    results$training['m2.RMSE', fold, 1:trained$iter] <- test.results$m2.RMSE
-    results$training['m2.exp.var', fold, 1:trained$iter] <- test.results$m2.exp.var
-    if(length(test.results$m2.p.cor))
-      results$training['m2.p.cor', fold, 1:trained$iter] <- test.results$m2.p.cor
-    if(length(test.results$m2.s.cor))
-      results$training['m2.s.cor', fold, 1:trained$iter] <- test.results$m2.s.cor
-  }
-  if('m3.RMSE' %in% names(test.results)) {
-    results$training['m3.RMSE', fold, 1:trained$iter] <- test.results$m3.RMSE
-    results$training['m3.exp.var', fold, 1:trained$iter] <- test.results$m3.exp.var
-    if(length(test.results$m3.p.cor))
-      results$training['m3.p.cor', fold, 1:trained$iter] <- test.results$m3.p.cor
-    if(length(test.results$m3.s.cor))
-      results$training['m3.s.cor', fold, 1:trained$iter] <- test.results$m3.s.cor
-  }
-  if('m1m2.RMSE' %in% names(test.results)) {
-    results$training['m1m2.RMSE', fold, 1:trained$iter] <- test.results$m1m2.RMSE
-    results$training['m1m2.exp.var', fold, 1:trained$iter] <- test.results$m1m2.exp.var
-    if(length(test.results$m1m2.p.cor))
-      results$training['m1m2.p.cor', fold, 1:trained$iter] <- test.results$m1m2.p.cor
-    if(length(test.results$m1m2.s.cor))
-      results$training['m1m2.s.cor', fold, 1:trained$iter] <- test.results$m1m2.s.cor
-  }
-  if('m1m3.RMSE' %in% names(test.results)) {
-    results$training['m1m3.RMSE', fold, 1:trained$iter] <- test.results$m1m3.RMSE
-    results$training['m1m3.exp.var', fold, 1:trained$iter] <- test.results$m1m3.exp.var
-    if(length(test.results$m1m3.p.cor))
-      results$training['m1m3.p.cor', fold, 1:trained$iter] <- test.results$m1m3.p.cor
-    if(length(test.results$m1m3.s.cor))
-      results$training['m1m3.s.cor', fold, 1:trained$iter] <- test.results$m1m3.s.cor
-  }
-  if('m2m3.RMSE' %in% names(test.results)) {
-    results$training['m2m3.RMSE', fold, 1:trained$iter] <- test.results$m2m3.RMSE
-    results$training['m2m3.exp.var', fold, 1:trained$iter] <- test.results$m2m3.exp.var
-    if(length(test.results$m2m3.p.cor))
-      results$training['m2m3.p.cor', fold, 1:trained$iter] <- test.results$m2m3.p.cor
-    if(length(test.results$m2m3.s.cor))
-      results$training['m2m3.s.cor', fold, 1:trained$iter] <- test.results$m2m3.s.cor
+  for(mode in c('warm', 'm1', 'm2', 'm3', 'm1m2', 'm1m3', 'm2m3', 'm1m2m3')) {
+    if(paste0(mode, '.RMSE') %in% names(test.results)) {
+      all.results$training[paste0(mode, '.RMSE'), fold, 1:trained$iter] <- 
+        test.results[[paste0(mode, '.RMSE')]]
+      all.results$training[paste0(mode, '.exp.var'), fold, 1:trained$iter] <- 
+        test.results[[paste0(mode, '.exp.var')]]
+      if(length(test.results[[paste0(mode, '.p.cor')]]))
+        all.results$training[paste0(mode, '.p.cor'), fold, 1:trained$iter] <- 
+          test.results[[paste0(mode, '.p.cor')]]
+      if(length(test.results[[paste0(mode, '.s.cor')]]))
+        all.results$training[paste0(mode, '.s.cor'), fold, 1:trained$iter] <- 
+          test.results[[paste0(mode, '.p.cor')]]
+    }
   }
 
-  if('m1m2m3.RMSE' %in% names(test.results)) {
-    results$training['m1m2m3.RMSE', fold, 1:trained$iter] <- test.results$m1m2m3.RMSE
-    results$training['m1m2m3.exp.var', fold, 1:trained$iter] <- test.results$m1m2m3.exp.var
-    if(length(test.results$m1m2m3.p.cor))
-      results$training['m1m2m3.p.cor', fold, 1:trained$iter] <- test.results$m1m2m3.p.cor
-    if(length(test.results$m1m2m3.s.cor))
-      results$training['m1m2m3.s.cor', fold, 1:trained$iter] <- test.results$m1m2m3.s.cor
-  }
-  
-  results$summaries['H', 'RMSE', fold] <- trained$H.RMSE[trained$iter]
-  results$summaries['H', 'min.RMSE.iter', fold] <- which.min(trained$H.RMSE)
-  results$summaries['H', 'min.RMSE', fold] <- min(trained$H.RMSE)
+  all.results$summaries['H', 'RMSE', fold] <- nrmse(train.data$resp, train.H.resp)
+  all.results$summaries['H', 'min.RMSE.iter', fold] <- which.min(trained$H.RMSE)
+  all.results$summaries['H', 'min.RMSE', fold] <- min(trained$H.RMSE)
 
-  results$summaries['train', 'RMSE', fold] <- trained$RMSE[trained$iter]
-  results$summaries['train', 'min.RMSE.iter', fold] <- which.min(trained$RMSE)
-  results$summaries['train', 'min.RMSE', fold] <- min(trained$RMSE)
-  results$summaries['train', 'exp.var', fold] <- trained$exp.var[trained$iter]
-  results$summaries['train', 'max.exp.var.iter', fold] <- which.max(trained$exp.var)
-  results$summaries['train', 'max.exp.var', fold] <- max(trained$exp.var)
+  all.results$summaries['train', 'RMSE', fold] <- nrmse(train.data$resp, trained$resp)
+  all.results$summaries['train', 'min.RMSE.iter', fold] <- which.min(trained$RMSE)
+  all.results$summaries['train', 'min.RMSE', fold] <- min(trained$RMSE)
+  all.results$summaries['train', 'exp.var', fold] <- exp_var(train.data$resp, trained$resp)
+  all.results$summaries['train', 'max.exp.var.iter', fold] <- which.max(trained$exp.var)
+  all.results$summaries['train', 'max.exp.var', fold] <- max(trained$exp.var)
   if(length(trained$p.cor)) {
-    results$summaries['train', 'p.cor', fold] <- trained$p.cor[trained$iter]
-    results$summaries['train', 'max.p.cor.iter', fold] <- which.max(trained$p.cor)
-    results$summaries['train', 'max.p.cor', fold] <- max(trained$p.cor)
-    results$summaries['train', 's.cor', fold] <- trained$s.cor[trained$iter]
-    results$summaries['train', 'max.s.cor.iter', fold] <- which.max(trained$s.cor)
-    results$summaries['train', 'max.s.cor', fold] <- max(trained$s.cor)
+    all.results$summaries['train', 'p.cor', fold] <- p_cor(train.data$resp, trained$resp)
+    all.results$summaries['train', 'max.p.cor.iter', fold] <- which.max(trained$p.cor)
+    all.results$summaries['train', 'max.p.cor', fold] <- max(trained$p.cor)
+    all.results$summaries['train', 's.cor', fold] <- s_cor(train.data$resp, trained$resp)
+    all.results$summaries['train', 'max.s.cor.iter', fold] <- which.max(trained$s.cor)
+    all.results$summaries['train', 'max.s.cor', fold] <- max(trained$s.cor)
   }
 
-  if('warm.RMSE' %in% names(test.results)) {
-    results$summaries['warm', 'RMSE', fold] <- test.results$warm.RMSE[trained$iter]
-    results$summaries['warm', 'min.RMSE.iter', fold] <- which.min(test.results$warm.RMSE)
-    results$summaries['warm', 'min.RMSE', fold] <- min(test.results$warm.RMSE)
-    results$summaries['warm', 'clip.RMSE', fold] <- test.results$warm.RMSE.clip[trained$iter]
-    results$summaries['warm', 'min.clip.RMSE.iter', fold] <- which.min(test.results$warm.RMSE.clip)
-    results$summaries['warm', 'min.clip.RMSE', fold] <- min(test.results$warm.RMSE.clip)
-    results$summaries['warm', 'exp.var', fold] <- test.results$warm.exp.var[trained$iter]
-    results$summaries['warm', 'max.exp.var.iter', fold] <- which.max(test.results$warm.exp.var)
-    results$summaries['warm', 'max.exp.var', fold] <- max(test.results$warm.exp.var)
-    if(length(test.results$warm.p.cor)) {
-      results$summaries['warm', 'p.cor', fold] <- test.results$warm.p.cor[trained$iter]
-      results$summaries['warm', 'max.p.cor.iter', fold] <- which.max(test.results$warm.p.cor)
-      results$summaries['warm', 'max.p.cor', fold] <- max(test.results$warm.p.cor)
-      results$summaries['warm', 's.cor', fold] <- test.results$warm.s.cor[trained$iter]
-      results$summaries['warm', 'max.s.cor.iter', fold] <- which.max(test.results$warm.s.cor)
-      results$summaries['warm', 'max.s.cor', fold] <- max(test.results$warm.s.cor)
+  for(mode in c('warm', 'm1', 'm2', 'm3', 'm1m2', 'm1m3', 'm2m3', 'm1m2m3')) {
+    if(paste0(mode, '.RMSE') %in% names(test.results)) {
+      if(mode=='warm') {
+        preds <- warm.preds
+      } else {
+        preds <- get(paste0(mode, '.pred.resp'))
+      }
+      resp <- get(paste0(mode, '.resp'))
+
+      all.results$summaries[mode, 'RMSE', fold] <- nrmse(resp, preds)
+      all.results$summaries[mode, 'min.RMSE.iter', fold] <- 
+        which.min(test.results[[paste0(mode, '.RMSE')]])
+      all.results$summaries[mode, 'min.RMSE', fold] <- 
+        min(test.results[[paste0(mode, '.RMSE')]])
+      all.results$summaries[mode, 'clip.RMSE', fold] <- 
+        test.results[[paste0(mode, '.RMSE.clip')]][trained$iter]
+      all.results$summaries[mode, 'min.clip.RMSE.iter', fold] <- 
+        which.min(test.results[[paste0(mode, '.RMSE.clip')]])
+      all.results$summaries[mode, 'min.clip.RMSE', fold] <- 
+        min(test.results[[paste0(mode, '.RMSE.clip')]])
+      all.results$summaries[mode, 'exp.var', fold] <- exp_var(resp, preds)
+      all.results$summaries[mode, 'max.exp.var.iter', fold] <- 
+        which.max(test.results[[paste0(mode, '.exp.var')]])
+      all.results$summaries[mode, 'max.exp.var', fold] <- 
+        max(test.results[[paste0(mode, '.exp.var')]])
+      if(length(test.results[[paste0(mode, '.p.cor')]])) {
+        all.results$summaries[mode, 'p.cor', fold] <- p_cor(resp, preds)
+        all.results$summaries[mode, 'max.p.cor.iter', fold] <- 
+          which.max(test.results[[paste0(mode, '.p.cor')]])
+        all.results$summaries[mode, 'max.p.cor', fold] <- 
+          max(test.results[[paste0(mode, '.p.cor')]])
+        all.results$summaries[mode, 's.cor', fold] <- s_cor(resp, preds)
+        all.results$summaries[mode, 'max.s.cor.iter', fold] <- 
+          which.max(test.results[[paste0(mode, '.s.cor')]])
+        all.results$summaries[mode, 'max.s.cor', fold] <- 
+          max(test.results[[paste0(mode, '.s.cor')]])
+      }
     }
   }
 
-  if('m1.RMSE' %in% names(test.results)) {
-    results$summaries['m1', 'RMSE', fold] <- test.results$m1.RMSE[trained$iter]
-    results$summaries['m1', 'min.RMSE.iter', fold] <- which.min(test.results$m1.RMSE)
-    results$summaries['m1', 'min.RMSE', fold] <- min(test.results$m1.RMSE)
-    results$summaries['m1', 'clip.RMSE', fold] <- test.results$m1.RMSE.clip[trained$iter]
-    results$summaries['m1', 'min.clip.RMSE.iter', fold] <- which.min(test.results$m1.RMSE.clip)
-    results$summaries['m1', 'min.clip.RMSE', fold] <- min(test.results$m1.RMSE.clip)
-    results$summaries['m1', 'exp.var', fold] <- test.results$m1.exp.var[trained$iter]
-    results$summaries['m1', 'max.exp.var.iter', fold] <- which.max(test.results$m1.exp.var)
-    results$summaries['m1', 'max.exp.var', fold] <- max(test.results$m1.exp.var)
-    if(length(test.results$m1.p.cor)) {
-      results$summaries['m1', 'p.cor', fold] <- test.results$m1.p.cor[trained$iter]
-      results$summaries['m1', 'max.p.cor.iter', fold] <- which.max(test.results$m1.p.cor)
-      results$summaries['m1', 'max.p.cor', fold] <- max(test.results$m1.p.cor)
-      results$summaries['m1', 's.cor', fold] <- test.results$m1.s.cor[trained$iter]
-      results$summaries['m1', 'max.s.cor.iter', fold] <- which.max(test.results$m1.s.cor)
-      results$summaries['m1', 'max.s.cor', fold] <- max(test.results$m1.s.cor)
+  # If responses are binary, then map to -1 or 1. and get accuracy measures
+  if(binary) {
+    trained.resp <- trained$resp
+    trained.resp[trained.resp < 0] <- -1
+    trained.resp[trained.resp > 0] <- 1
+    all.results$summaries['train', 'acc', fold] <- mean(train.data$resp == trained.resp, na.rm=T)
+
+
+    for(mode in c('warm', 'm1', 'm2', 'm3', 'm1m2', 'm1m3', 'm2m3', 'm1m2m3')) {
+      if(paste0(mode, '.RMSE') %in% names(test.results)) {
+        if(mode=='warm') {
+          preds <- warm.preds
+        } else {
+          preds <- get(paste0(mode, '.pred.resp'))
+        }
+        resp <- get(paste0(mode, '.resp'))
+        resp[resp < 0] <- -1
+        resp[resp > 0] <- 1
+        pred[pred < 0] <- -1
+        pred[pred > 0] <- 1
+
+        all.results$summaries[mode, 'acc', fold] <- mean(resp == pred, na.rm=T)
+      }
     }
   }
 
-  if('m2.RMSE' %in% names(test.results)) {
-    results$summaries['m2', 'RMSE', fold] <- test.results$m2.RMSE[trained$iter]
-    results$summaries['m2', 'min.RMSE.iter', fold] <- which.min(test.results$m2.RMSE)
-    results$summaries['m2', 'min.RMSE', fold] <- min(test.results$m2.RMSE)
-    results$summaries['m2', 'clip.RMSE', fold] <- test.results$m2.RMSE.clip[trained$iter]
-    results$summaries['m2', 'min.clip.RMSE.iter', fold] <- which.min(test.results$m2.RMSE.clip)
-    results$summaries['m2', 'min.clip.RMSE', fold] <- min(test.results$m2.RMSE.clip)
-    results$summaries['m2', 'exp.var', fold] <- test.results$m2.exp.var[trained$iter]
-    results$summaries['m2', 'max.exp.var.iter', fold] <- which.max(test.results$m2.exp.var)
-    results$summaries['m2', 'max.exp.var', fold] <- max(test.results$m2.exp.var)
-    if(length(test.results$m2.p.cor)) {
-      results$summaries['m2', 'p.cor', fold] <- test.results$m2.p.cor[trained$iter]
-      results$summaries['m2', 'max.p.cor.iter', fold] <- which.max(test.results$m2.p.cor)
-      results$summaries['m2', 'max.p.cor', fold] <- max(test.results$m2.p.cor)
-      results$summaries['m2', 's.cor', fold] <- test.results$m2.s.cor[trained$iter]
-      results$summaries['m2', 'max.s.cor.iter', fold] <- which.max(test.results$m2.s.cor)
-      results$summaries['m2', 'max.s.cor', fold] <- max(test.results$m2.s.cor)
-    }
-  }
-
-  if('m3.RMSE' %in% names(test.results)) {
-    results$summaries['m3', 'RMSE', fold] <- test.results$m3.RMSE[trained$iter]
-    results$summaries['m3', 'min.RMSE.iter', fold] <- which.min(test.results$m3.RMSE)
-    results$summaries['m3', 'min.RMSE', fold] <- min(test.results$m3.RMSE)
-    results$summaries['m3', 'clip.RMSE', fold] <- test.results$m3.RMSE.clip[trained$iter]
-    results$summaries['m3', 'min.clip.RMSE.iter', fold] <- which.min(test.results$m3.RMSE.clip)
-    results$summaries['m3', 'min.clip.RMSE', fold] <- min(test.results$m3.RMSE.clip)
-    results$summaries['m3', 'exp.var', fold] <- test.results$m3.exp.var[trained$iter]
-    results$summaries['m3', 'max.exp.var.iter', fold] <- which.max(test.results$m3.exp.var)
-    results$summaries['m3', 'max.exp.var', fold] <- max(test.results$m3.exp.var)
-    if(length(test.results$m3.p.cor)) {
-      results$summaries['m3', 'p.cor', fold] <- test.results$m3.p.cor[trained$iter]
-      results$summaries['m3', 'max.p.cor.iter', fold] <- which.max(test.results$m3.p.cor)
-      results$summaries['m3', 'max.p.cor', fold] <- max(test.results$m3.p.cor)
-      results$summaries['m3', 's.cor', fold] <- test.results$m3.s.cor[trained$iter]
-      results$summaries['m3', 'max.s.cor.iter', fold] <- which.max(test.results$m3.s.cor)
-      results$summaries['m3', 'max.s.cor', fold] <- max(test.results$m3.s.cor)
-    }
-  }
-
-  if('m1m2.RMSE' %in% names(test.results)) {
-    results$summaries['m1m2', 'RMSE', fold] <- test.results$m1m2.RMSE[trained$iter]
-    results$summaries['m1m2', 'min.RMSE.iter', fold] <- which.min(test.results$m1m2.RMSE)
-    results$summaries['m1m2', 'min.RMSE', fold] <- min(test.results$m1m2.RMSE)
-    results$summaries['m1m2', 'clip.RMSE', fold] <- test.results$m1m2.RMSE.clip[trained$iter]
-    results$summaries['m1m2', 'min.clip.RMSE.iter', fold] <- which.min(test.results$m1m2.RMSE.clip)
-    results$summaries['m1m2', 'min.clip.RMSE', fold] <- min(test.results$m1m2.RMSE.clip)
-    results$summaries['m1m2', 'exp.var', fold] <- test.results$m1m2.exp.var[trained$iter]
-    results$summaries['m1m2', 'max.exp.var.iter', fold] <- which.max(test.results$m1m2.exp.var)
-    results$summaries['m1m2', 'max.exp.var', fold] <- max(test.results$m1m2.exp.var)
-    if(length(test.results$m1m2.p.cor)) {
-      results$summaries['m1m2', 'p.cor', fold] <- test.results$m1m2.p.cor[trained$iter]
-      results$summaries['m1m2', 'max.p.cor.iter', fold] <- which.max(test.results$m1m2.p.cor)
-      results$summaries['m1m2', 'max.p.cor', fold] <- max(test.results$m1m2.p.cor)
-      results$summaries['m1m2', 's.cor', fold] <- test.results$m1m2.s.cor[trained$iter]
-      results$summaries['m1m2', 'max.s.cor.iter', fold] <- which.max(test.results$m1m2.s.cor)
-      results$summaries['m1m2', 'max.s.cor', fold] <- max(test.results$m1m2.s.cor)
-    }
-  }
-
-  if('m1m3.RMSE' %in% names(test.results)) {
-    results$summaries['m1m3', 'RMSE', fold] <- test.results$m1m3.RMSE[trained$iter]
-    results$summaries['m1m3', 'min.RMSE.iter', fold] <- which.min(test.results$m1m3.RMSE)
-    results$summaries['m1m3', 'min.RMSE', fold] <- min(test.results$m1m3.RMSE)
-    results$summaries['m1m3', 'clip.RMSE', fold] <- test.results$m1m3.RMSE.clip[trained$iter]
-    results$summaries['m1m3', 'min.clip.RMSE.iter', fold] <- which.min(test.results$m1m3.RMSE.clip)
-    results$summaries['m1m3', 'min.clip.RMSE', fold] <- min(test.results$m1m3.RMSE.clip)
-    results$summaries['m1m3', 'exp.var', fold] <- test.results$m1m3.exp.var[trained$iter]
-    results$summaries['m1m3', 'max.exp.var.iter', fold] <- which.max(test.results$m1m3.exp.var)
-    results$summaries['m1m3', 'max.exp.var', fold] <- max(test.results$m1m3.exp.var)
-    if(length(test.results$m1m3.p.cor)) {
-      results$summaries['m1m3', 'p.cor', fold] <- test.results$m1m3.p.cor[trained$iter]
-      results$summaries['m1m3', 'max.p.cor.iter', fold] <- which.max(test.results$m1m3.p.cor)
-      results$summaries['m1m3', 'max.p.cor', fold] <- max(test.results$m1m3.p.cor)
-      results$summaries['m1m3', 's.cor', fold] <- test.results$m1m3.s.cor[trained$iter]
-      results$summaries['m1m3', 'max.s.cor.iter', fold] <- which.max(test.results$m1m3.s.cor)
-      results$summaries['m1m3', 'max.s.cor', fold] <- max(test.results$m1m3.s.cor)
-    }
-  }
-
-  if('m2m3.RMSE' %in% names(test.results)) {
-    results$summaries['m2m3', 'RMSE', fold] <- test.results$m2m3.RMSE[trained$iter]
-    results$summaries['m2m3', 'min.RMSE.iter', fold] <- which.min(test.results$m2m3.RMSE)
-    results$summaries['m2m3', 'min.RMSE', fold] <- min(test.results$m2m3.RMSE)
-    results$summaries['m2m3', 'clip.RMSE', fold] <- test.results$m2m3.RMSE.clip[trained$iter]
-    results$summaries['m2m3', 'min.clip.RMSE.iter', fold] <- which.min(test.results$m2m3.RMSE.clip)
-    results$summaries['m2m3', 'min.clip.RMSE', fold] <- min(test.results$m2m3.RMSE.clip)
-    results$summaries['m2m3', 'exp.var', fold] <- test.results$m2m3.exp.var[trained$iter]
-    results$summaries['m2m3', 'max.exp.var.iter', fold] <- which.max(test.results$m2m3.exp.var)
-    results$summaries['m2m3', 'max.exp.var', fold] <- max(test.results$m2m3.exp.var)
-    if(length(test.results$m2m3.p.cor)) {
-      results$summaries['m2m3', 'p.cor', fold] <- test.results$m2m3.p.cor[trained$iter]
-      results$summaries['m2m3', 'max.p.cor.iter', fold] <- which.max(test.results$m2m3.p.cor)
-      results$summaries['m2m3', 'max.p.cor', fold] <- max(test.results$m2m3.p.cor)
-      results$summaries['m2m3', 's.cor', fold] <- test.results$m2m3.s.cor[trained$iter]
-      results$summaries['m2m3', 'max.s.cor.iter', fold] <- which.max(test.results$m2m3.s.cor)
-      results$summaries['m2m3', 'max.s.cor', fold] <- max(test.results$m2m3.s.cor)
-    }
-  }
-
-  if('m1m2m3.RMSE' %in% names(test.results)) {
-    results$summaries['m1m2m3', 'RMSE', fold] <- test.results$m1m2m3.RMSE[trained$iter]
-    results$summaries['m1m2m3', 'min.RMSE.iter', fold] <- which.min(test.results$m1m2m3.RMSE)
-    results$summaries['m1m2m3', 'min.RMSE', fold] <- min(test.results$m1m2m3.RMSE)
-    results$summaries['m1m2m3', 'clip.RMSE', fold] <- test.results$m1m2m3.RMSE.clip[trained$iter]
-    results$summaries['m1m2m3', 'min.clip.RMSE.iter', fold] <- which.min(test.results$m1m2m3.RMSE.clip)
-    results$summaries['m1m2m3', 'min.clip.RMSE', fold] <- min(test.results$m1m2m3.RMSE.clip)
-    results$summaries['m1m2m3', 'exp.var', fold] <- test.results$m1m2m3.exp.var[trained$iter]
-    results$summaries['m1m2m3', 'max.exp.var.iter', fold] <- which.max(test.results$m1m2m3.exp.var)
-    results$summaries['m1m2m3', 'max.exp.var', fold] <- max(test.results$m1m2m3.exp.var)
-    if(length(test.results$m1m2m3.p.cor)) {
-      results$summaries['m1m2m3', 'p.cor', fold] <- test.results$m1m2m3.p.cor[trained$iter]
-      results$summaries['m1m2m3', 'max.p.cor.iter', fold] <- which.max(test.results$m1m2m3.p.cor)
-      results$summaries['m1m2m3', 'max.p.cor', fold] <- max(test.results$m1m2m3.p.cor)
-      results$summaries['m1m2m3', 's.cor', fold] <- test.results$m1m2m3.s.cor[trained$iter]
-      results$summaries['m1m2m3', 'max.s.cor.iter', fold] <- which.max(test.results$m1m2m3.s.cor)
-      results$summaries['m1m2m3', 'max.s.cor', fold] <- max(test.results$m1m2m3.s.cor)
-    }
-  }
+  # Testing just comparing the number called correctly w/ BaTFLED vs. mean
+  # mean(train.data$resp == trained$resp, na.rm=T)
+  # mean(train.data$resp == mean.tens.list[[1]], na.rm=T)
   
-  results$sparsity['m1', fold] <- sum(1/(trained$mode1.lambda.shape * 
+  all.results$sparsity['m1', fold] <- sum(1/(trained$mode1.lambda.shape * 
     trained$mode1.lambda.scale) > m1.rem.cut)/dim(train.data$mode1.X)[2]
-  results$sparsity['m2', fold] <- sum(1/(trained$mode2.lambda.shape * 
+  all.results$sparsity['m2', fold] <- sum(1/(trained$mode2.lambda.shape * 
     trained$mode2.lambda.scale) > m2.rem.cut)/dim(train.data$mode2.X)[2]
-  results$sparsity['m3', fold] <- sum(1/(trained$mode3.lambda.shape * 
-    trained$mode3.lambda.scale) > m3.rem.cut)/dim(train.data$mode2.X)[3]
-  results$sparsity['core', fold] <- sum(1/(trained$core.lambda.shape * 
+  all.results$sparsity['m3', fold] <- sum(1/(trained$mode3.lambda.shape * 
+    trained$mode3.lambda.scale) > m3.rem.cut)/dim(train.data$mode3.X)[3]
+  all.results$sparsity['core', fold] <- sum(1/(trained$core.lambda.shape * 
     trained$core.lambda.scale) > core.rem.cut)/prod(dim(trained$core.mean))
 
-  return(results)
+  # print(paste('Read fold', fld))
+  return(all.results)
 }
 
 ########### MAIN ###############
@@ -390,7 +197,12 @@ n.files <- length(list.files(path = dirname(run_prefix),
   pattern = paste0(basename(run_prefix), '.[0-9]+.out')))
 
 f1 <- paste0(run_prefix, '.0/image.Rdata')
-iters <- get_iters(f1)
+tmp <- get_iter_binary(f1)
+iters <- tmp$iters
+binary <- tmp$binary
+####################################################### fix the binary stuff ######
+# binary <- F
+rm(tmp)
 
 training <- array(NA, dim=c(38, n.files, iters),
   dimnames=list(c('lower.bnd', 'A.RMSE', 'H.RMSE', 'warm.RMSE', 
@@ -417,13 +229,25 @@ summaries <- array(NA, dim=c(11, 15, n.files),
                   's.cor', 'max.s.cor.iter', 'max.s.cor'),
                 paste0('fold.', 1:n.files)))
 
-mean <- array(NA, dim=c(4, 17, n.files), 
+if(binary) 
+  summaries <- array(NA, dim=c(11, 18, n.files),
+    dimnames=list(c('A' ,'H', 'train', 'warm', 'm1', 'm2', 'm3',
+                    'm1m2', 'm1m3', 'm2m3', 'm1m2m3'),
+                  c('RMSE', 'min.RMSE', 'min.RMSE.iter',
+                    'clip.RMSE', 'min.clip.RMSE', 'min.clip.RMSE.iter',
+                    'exp.var', 'max.exp.var.iter', 'max.exp.var',
+                    'p.cor', 'max.p.cor.iter', 'max.p.cor',
+                    's.cor', 'max.s.cor.iter', 'max.s.cor',
+                    'acc', 'max.acc.iter', 'max.acc'),
+                  paste0('fold.', 1:n.files)))
+
+mean <- array(NA, dim=c(4, 21, n.files), 
   dimnames=list(c('RMSE', 'exp.var', 'p.cor', 's.cor'),
                 c('train.m1', 'train.m2', 'train.m3',
                   'train.m1m2', 'train.m1m3', 'train.m2m3', 'train.m1m2m3',
                   'warm.m1', 'warm.m2', 'warm.m3', 
                   'warm.m1m2', 'warm.m1m3', 'warm.m2m3', 'warm.m1m2m3',
-                  'm1', 'm2', 'm1m2'),
+                  'm1', 'm2', 'm3', 'm1m2', 'm1m3', 'm2m3', 'm1m2m3'),
                 paste0('fold.', 1:n.files)))
 
 lower.bnd <- matrix(NA, 4, n.files, dimnames=
@@ -434,7 +258,7 @@ sparsity <- matrix(NA, 4, n.files,
   dimnames=list(c('m1', 'm2', 'm3', 'core'),
                 paste0('fold.', 1:n.files)))
 
-results <- list(training=training, summaries=summaries,
+all.results <- list(training=training, summaries=summaries,
    mean=mean, lower.bnd=lower.bnd, sparsity=sparsity)
 
 rm(training, summaries, mean, lower.bnd, sparsity)
@@ -442,8 +266,10 @@ rm(training, summaries, mean, lower.bnd, sparsity)
 for(fld in 1:n.files) {
   # Load in the run data
   f <- paste0(run_prefix, '.', (fld-1), '/image.Rdata')
-  results <- loadData(f, results)
+  all.results <- loadData(f, all.results)
 }
+
+results <- all.results
 
 # Remove NA results for tests that weren't performed
 # results$training <- results$training[apply(results$training, 1, function(x) sum(!is.na(x))>0),,]
@@ -451,6 +277,19 @@ for(fld in 1:n.files) {
 # results$mean <- results$mean[apply(results$mean, 1, function(x) sum(!is.na(x))>0),,]
 
 # Make data frame counting how many folds peform better than the mean
+#####################################################################
+
+# Decide which mean to compare to depending on which test data we have results for
+# default to m1
+which.mean <- 'm1'
+if(sum(!is.na(results$summaries['m1',,]))) which.mean <- 'm1'
+if(sum(!is.na(results$summaries['m2',,]))) which.mean <- 'm2'
+if(sum(!is.na(results$summaries['m3',,]))) which.mean <- 'm3'
+if(sum(!is.na(results$summaries['m1m2',,]))) which.mean <- 'm1m2'
+if(sum(!is.na(results$summaries['m1m3',,]))) which.mean <- 'm1m3'
+if(sum(!is.na(results$summaries['m2m3',,]))) which.mean <- 'm2m3'
+if(sum(!is.na(results$summaries['m1m2m3',,]))) which.mean <- 'm1m2m3'
+
 better <- matrix(NA, dim(results$summaries)[1], 
   length(dimnames(results$summaries)[[2]][!grepl('iter', dimnames(results$summaries)[[2]])]), 
   dimnames=list(dimnames(results$summaries)[[1]],
@@ -458,32 +297,43 @@ better <- matrix(NA, dim(results$summaries)[1],
 
 for(type in c('A', 'H', 'train')) for(resp in c('RMSE', 'min.RMSE', 'clip.RMSE', 'min.clip.RMSE')) 
   if(type %in% dimnames(results$summaries)[[1]])
-    better[type, resp] <- sum(results$summaries[type, resp,] < results$mean['RMSE', 'train.m1',])
+    better[type, resp] <- mean(results$summaries[type, resp,] < results$mean['RMSE', paste0('train.', which.mean),],na.rm=T)
 for(resp in c('RMSE', 'min.RMSE', 'clip.RMSE', 'min.clip.RMSE')) 
-  better['warm', resp] <- sum(results$summaries['warm', resp,] < results$mean['RMSE', 'warm.m1',])
-for(type in c('m1', 'm2', 'm1m2')) for (resp in c('RMSE', 'min.RMSE', 'clip.RMSE', 'min.clip.RMSE')) 
-  better[type, resp] <- sum(results$summaries[type, resp,] < results$mean['RMSE', type,])
+  better['warm', resp] <- mean(results$summaries['warm', resp,] < results$mean['RMSE', paste0('warm.', which.mean),],na.rm=T)
+for(type in c('m1', 'm2', 'm3', 'm1m2', 'm1m3', 'm2m3', 'm1m2m3')) 
+  for (resp in c('RMSE', 'min.RMSE', 'clip.RMSE', 'min.clip.RMSE')) 
+    better[type, resp] <- mean(results$summaries[type, resp,] < results$mean['RMSE', type,],na.rm=T)
 for(type in c('A', 'H', 'train')) for(resp in c('exp.var', 'max.exp.var')) 
   if(type %in% dimnames(results$summaries)[[1]])
-    better[type, resp] <- sum(results$summaries[type, resp,] > results$mean['exp.var', 'train.m1',])
+    better[type, resp] <- mean(results$summaries[type, resp,] > results$mean['exp.var', paste0('train.', which.mean),],na.rm=T)
 for(resp in c('exp.var', 'max.exp.var')) 
-  better['warm', resp] <- sum(results$summaries['warm', resp,] > results$mean['exp.var', 'warm.m1',])
-for(type in c('m1', 'm2', 'm1m2')) for (resp in c('exp.var', 'max.exp.var')) 
-  better[type, resp] <- sum(results$summaries[type, resp,] > results$mean['exp.var', type,])
+  better['warm', resp] <- mean(results$summaries['warm', resp,] > results$mean['exp.var', paste0('warm.', which.mean),],na.rm=T)
+for(type in c('m1', 'm2', 'm3', 'm1m2', 'm1m3', 'm2m3', 'm1m2m3')) for (resp in c('exp.var', 'max.exp.var')) 
+  better[type, resp] <- mean(results$summaries[type, resp,] > results$mean['exp.var', type,],na.rm=T)
 for(type in c('A', 'H', 'train')) for(resp in c('p.cor', 'max.p.cor')) 
   if(type %in% dimnames(results$summaries)[[1]])
-    better[type, resp] <- sum(results$summaries[type, resp,] > results$mean['p.cor', 'train.m1',])
+    better[type, resp] <- mean(results$summaries[type, resp,] > results$mean['p.cor', paste0('train.', which.mean),],na.rm=T)
 for(resp in c('p.cor', 'max.p.cor')) 
-  better['warm', resp] <- sum(results$summaries['warm', resp,] > results$mean['p.cor', 'warm.m1',])
-for(type in c('m1', 'm2', 'm1m2')) for (resp in c('p.cor', 'max.p.cor')) 
-  better[type, resp] <- sum(results$summaries[type, resp,] > results$mean['p.cor', type,])
+  better['warm', resp] <- mean(results$summaries['warm', resp,] > results$mean['p.cor', paste0('warm.', which.mean),],na.rm=T)
+for(type in c('m1', 'm2', 'm3', 'm1m2', 'm1m3', 'm2m3', 'm1m2m3')) for (resp in c('p.cor', 'max.p.cor')) 
+  better[type, resp] <- mean(results$summaries[type, resp,] > results$mean['p.cor', type,],na.rm=T)
 for(type in c('A', 'H', 'train')) for(resp in c('s.cor', 'max.s.cor')) 
   if(type %in% dimnames(results$summaries)[[1]])
-    better[type, resp] <- sum(results$summaries[type, resp,] > results$mean['s.cor', 'train.m1',])
+    better[type, resp] <- mean(results$summaries[type, resp,] > results$mean['s.cor', paste0('train.', which.mean),],na.rm=T)
 for(resp in c('s.cor', 'max.s.cor')) 
-  better['warm', resp] <- sum(results$summaries['warm', resp,] > results$mean['s.cor', 'warm.m1',])
-for(type in c('m1', 'm2', 'm1m2')) for (resp in c('s.cor', 'max.s.cor')) 
-  better[type, resp] <- sum(results$summaries[type, resp,] > results$mean['s.cor', type,])
+  better['warm', resp] <- mean(results$summaries['warm', resp,] > results$mean['s.cor', paste0('warm.', which.mean),],na.rm=T)
+for(type in c('m1', 'm2', 'm3', 'm1m2', 'm1m3', 'm2m3', 'm1m2m3')) for (resp in c('s.cor', 'max.s.cor')) 
+  better[type, resp] <- mean(results$summaries[type, resp,] > results$mean['s.cor', type,],na.rm=T)
+
+if(binary) {
+  for(type in c('A', 'H', 'train')) for(resp in c('acc', 'max.acc'))
+    if(type %in% dimnames(results$summaries)[[1]])
+      better[type, resp] <- mean(results$summaries[type, resp,] > 0.5, na.rm=T)
+  for(resp in c('acc', 'max.acc'))
+    better['warm', resp] <- mean(results$summaries['warm', resp,] > .5, na.rm=T)
+  for(type in c('m1', 'm2', 'm3', 'm1m2', 'm1m3', 'm2m3', 'm1m2m3')) for (resp in c('acc', 'max.acc'))
+    better[type, resp] <- mean(results$summaries[type, resp,] > 0.5, na.rm=T)
+}
 
 # Read log files to get run time if the runs finished
 if(length(system2('grep', c('"Job terminated"', paste0(run_prefix, '.*.log')), stdout=T)>0)) {
@@ -549,6 +399,20 @@ plot(results$training['lower.bnd',1,], type='l', lwd=2, col=cols[1],
      ylim=range(results$training['lower.bnd',,5:iters]))
 for(i in 2:n.files) points(results$training['lower.bnd',i,], type='l', lwd=2, col=cols[i])
 dev.off()
+
+######### Barplot of accuracies if binary responses #################
+if(binary) {
+  pdf(file=paste0(run_prefix, '_acc_bars.pdf'))
+  par(mfrow=c(2,1))
+  barplot(results$summaries['train', 'acc',], main='training accuracy',
+          ylim=c(0,1))
+  abline(h=0.5, lty=2, col='red')
+
+  type <- dimnames(results$summaries)[[1]][which(!is.na(results$summaries[,'acc', 1]))[2]]
+  barplot(results$summaries[type, 'acc',], main=paste(type, 'accuracy'),
+          ylim=c(0,1))
+  abline(h=0.5, lty=2, col='red')
+}
 
 ######### Plot RMSEs ##############
 

@@ -12,10 +12,18 @@
 args <- commandArgs(TRUE)
 summary_data <- args[1]
 
-load(args[1])
+load(summary_data)
 
-sum.mean <- apply(results$mean, c(1,2), mean)
-sum.sd <- apply(results$mean, c(1,2), sd)
+# Warn about NAs
+for(resp in dimnames(results$mean)[[1]])
+  for(type in dimnames(results$mean)[[2]]) {
+    nas <- sum(is.na(results$mean[resp, type,]))
+    if(nas > 0 & nas < dim(results$mean)[3])
+      print(sprintf('%s prediction, %s response has %d NA value(s)', type, resp, nas))
+}
+
+sum.mean <- apply(results$mean, c(1,2), mean, na.rm=T)
+sum.sd <- apply(results$mean, c(1,2), sd, na.rm=T)
 
 print('Mean across replictes')
 print('########################')
@@ -142,4 +150,3 @@ for(type in c('RMSE', 'exp.var', 'p.cor', 's.cor')) {
 }
 m123.vec[is.nan(m123.vec)] <- NA
 print(paste(m123.vec, collapse=','))
-

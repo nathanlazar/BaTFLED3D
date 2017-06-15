@@ -169,22 +169,69 @@ for(fold in 1:folds) {
 ######################################
 
 # Save matrices of predictors for each fold
-m1.mat.sub.list <- list()
-m2.mat.sub.list <- list()
-m3.mat.sub.list <- list()
+m1.mat.upGau.list <- list()
+m2.mat.upGau.list <- list()
+m3.mat.upGau.list <- list()
+
+m1.mat.top15.list <- list()
+m2.mat.top15.list <- list()
+m3.mat.top15.list <- list()
 
 for(fold in 1:folds) {
-  m1.mat.sub.list[[fold]] <- m1.mat[,colnames(m1.mat) %in% rownames(m1.preds)[m1.select[,fold] > -Inf]]
-  m2.mat.sub.list[[fold]] <- m2.mat[,colnames(m2.mat) %in% rownames(m2.preds)[m2.select[,fold] > -Inf]]
-  m3.mat.sub.list[[fold]] <- m3.mat[,colnames(m3.mat) %in% rownames(m3.preds)[m3.select[,fold] > -Inf]]
+  m1.mat.upGau.list[[fold]] <- m1.mat[,colnames(m1.mat) %in% rownames(m1.preds)[m1.select[,fold] > -Inf]]
+  m2.mat.upGau.list[[fold]] <- m2.mat[,colnames(m2.mat) %in% rownames(m2.preds)[m2.select[,fold] > -Inf]]
+  m3.mat.upGau.list[[fold]] <- m3.mat[,colnames(m3.mat) %in% rownames(m3.preds)[m3.select[,fold] > -Inf]]
 
-  m1.to.save <- m1.mat.sub.list[[fold]]
-  m2.to.save <- m2.mat.sub.list[[fold]]
-  m3.to.save <- m3.mat.sub.list[[fold]]
-  save(m1.to.save, file=paste0(out.dir, '/fold_', fold-1, '_m1_mat.Rdata'))
-  save(m2.to.save, file=paste0(out.dir, '/fold_', fold-1, '_m2_mat.Rdata'))
-  save(m3.to.save, file=paste0(out.dir, '/fold_', fold-1, '_m3_mat.Rdata'))
+  m1.mat.top15.list[[fold]] <- m1.mat[,colnames(m1.mat) %in% rownames(m1.preds[m1.preds[,fold] >= quantile(m1.preds[,fold], .85, na.rm=T),])]
+  m2.mat.top15.list[[fold]] <- m2.mat[,colnames(m2.mat) %in% rownames(m2.preds[m2.preds[,fold] >= quantile(m2.preds[,fold], .85, na.rm=T),])]
+  m3.mat.top15.list[[fold]] <- m3.mat[,colnames(m3.mat) %in% rownames(m3.preds[m3.preds[,fold] >= quantile(m3.preds[,fold], .85, na.rm=T),])]
+
+  m1.to.save <- m1.mat.upGau.list[[fold]]
+  m2.to.save <- m2.mat.upGau.list[[fold]]
+  m3.to.save <- m3.mat.upGau.list[[fold]]
+  if(ncol(m1.to.save))
+    save(m1.to.save, file=paste0(out.dir, '/upGau_fold_', fold-1, '_m1_mat.Rdata'))
+  if(ncol(m2.to.save))
+    save(m2.to.save, file=paste0(out.dir, '/upGau_fold_', fold-1, '_m2_mat.Rdata'))
+  if(ncol(m3.to.save))
+    save(m3.to.save, file=paste0(out.dir, '/upGau_fold_', fold-1, '_m3_mat.Rdata'))
+
+  m1.to.save <- m1.mat.top15.list[[fold]]
+  m2.to.save <- m2.mat.top15.list[[fold]]
+  m3.to.save <- m3.mat.top15.list[[fold]]
+  if(ncol(m1.to.save))
+    save(m1.to.save, file=paste0(out.dir, '/top15_fold_', fold-1, '_m1_mat.Rdata'))
+  if(ncol(m2.to.save))
+    save(m2.to.save, file=paste0(out.dir, '/top15_fold_', fold-1, '_m2_mat.Rdata'))
+  if(ncol(m3.to.save))
+    save(m3.to.save, file=paste0(out.dir, '/top15_fold_', fold-1, '_m3_mat.Rdata'))
 }
+
+# Print the number of predictors in the upper groups for each fold
+print(sprintf('Top 15%% of predictors for mode 1 ranges from %d to %d',
+  min(sapply(m1.mat.top15.list, ncol)), max(sapply(m1.mat.top15.list, ncol))))
+print(sprintf('Top 15%% of predictors for mode 2 ranges from %d to %d',
+  min(sapply(m2.mat.top15.list, ncol)), max(sapply(m2.mat.top15.list, ncol))))
+print(sprintf('Top 15%% of predictors for mode 3 ranges from %d to %d',
+  min(sapply(m3.mat.top15.list, ncol)), max(sapply(m3.mat.top15.list, ncol))))
+
+for(fold in 1:folds)
+  print(sprintf('For fold %d, keep %d predictors for mode 1', 
+                fold-1, ncol(m1.mat.upGau.list[[fold]])))
+print(sprintf('Range: %d - %d', min(sapply(m1.mat.upGau.list, ncol)),
+  max(sapply(m1.mat.upGau.list, ncol))))
+print('##############')
+for(fold in 1:folds)
+  print(sprintf('For fold %d, keep %d predictors for mode 2', 
+                fold-1, ncol(m2.mat.upGau.list[[fold]])))
+print(sprintf('Range: %d - %d', min(sapply(m2.mat.upGau.list, ncol)),
+  max(sapply(m2.mat.upGau.list, ncol))))
+print('##############')
+for(fold in 1:folds)
+  print(sprintf('For fold %d, keep %d predictors for mode 3', 
+                fold-1, ncol(m3.mat.upGau.list[[fold]])))
+print(sprintf('Range: %d - %d', min(sapply(m3.mat.upGau.list, ncol)),
+  max(sapply(m3.mat.upGau.list, ncol))))
 
 # Overlap of predictors chosen by at least n_lap folds
 ######################################################
@@ -214,9 +261,12 @@ m2.mat.sub <- m2.mat[,colnames(m2.mat) %in% m2.keep]
 m3.mat.sub <- m3.mat[,colnames(m3.mat) %in% m3.keep]
 
 # Save matrices of intersecting predictors
-save(m1.mat.sub, file=paste0(out.dir, '/keep', n_lap, '_m1_mat.Rdata'))
-save(m2.mat.sub, file=paste0(out.dir, '/keep', n_lap, '_m2_mat.Rdata'))
-save(m3.mat.sub, file=paste0(out.dir, '/keep', n_lap, '_m3_mat.Rdata'))
+if(ncol(m1.mat.sub))
+  save(m1.mat.sub, file=paste0(out.dir, '/keep', n_lap, '_m1_mat.Rdata'))
+if(ncol(m2.mat.sub))
+  save(m2.mat.sub, file=paste0(out.dir, '/keep', n_lap, '_m2_mat.Rdata'))
+if(ncol(m3.mat.sub))
+  save(m3.mat.sub, file=paste0(out.dir, '/keep', n_lap, '_m3_mat.Rdata'))
 
 # Union of the top per% of predictors for all folds (per=5%, 10%, 15%, 20%, 25%)
 ################################################################################
@@ -224,7 +274,7 @@ for(per in c(.05, .1, .15, .2, .25)) {
   per_str <- sub('0.', '_', sprintf('%.2f',per), fixed=T)
 
   if(nrow(m1.mat)) {
-    m1.quantiles <- apply(m1.select, 2, function(x) quantile(x[x > -Inf], 1-per))
+    m1.quantiles <- apply(m1.select, 2, function(x) quantile(x[x > -Inf], 1-per, na.rm=T))
     m1.keep.mat <- sweep(m1.select, 2, m1.quantiles, FUN='>')
     print(sprintf("A union of the top %d%% of predictors for mode 1 gives %d (%.1f%%)",
                   (per*100), sum(rowSums(m1.keep.mat)>0), 
@@ -238,7 +288,7 @@ for(per in c(.05, .1, .15, .2, .25)) {
   }
 
   if(nrow(m2.mat)) {
-    m2.quantiles <- apply(m2.select, 2, function(x) quantile(x[x > -Inf], 1-per))
+    m2.quantiles <- apply(m2.select, 2, function(x) quantile(x[x > -Inf], 1-per, na.rm=T))
     m2.keep.mat <- sweep(m2.select, 2, m2.quantiles, FUN='>')
     print(sprintf("A union of the top %d%% of predictors for mode 2 gives %d (%.1f%%)",
                   (per*100), sum(rowSums(m2.keep.mat)>0),
@@ -252,7 +302,7 @@ for(per in c(.05, .1, .15, .2, .25)) {
   }
 
   if(nrow(m3.mat)) {
-    m3.quantiles <- apply(m3.select, 2, function(x) quantile(x[x > -Inf], 1-per))
+    m3.quantiles <- apply(m3.select, 2, function(x) quantile(x[x > -Inf], 1-per, na.rm=T))
     m3.keep.mat <- sweep(m3.select, 2, m3.quantiles, FUN='>')
     print(sprintf("A union of the top %d%% of predictors for mode 3 gives %d (%.1f%%)",
                   (per*100), sum(rowSums(m3.keep.mat)>0),

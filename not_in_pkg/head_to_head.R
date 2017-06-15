@@ -1,10 +1,32 @@
 # Make plots of predictions comparing BaTFLED to mean for each sample
 
-# Usage: head_to_head_mean.R <run_summary.Rdata>
+# Usage1: head_to_head_mean.R <run_prefix1> <run_prefix2>
+# Usage2: head_to_head.R <run_prefix> mean
 
 args <- commandArgs(TRUE)
 
-sum_file <- args[1]
+run1 <- args[1]
+run2 <- args[2]
+
+# Determine the number of runs with this prefix
+n.files <- length(list.files(path = dirname(run1),
+  pattern = paste0(basename(run1), '.[0-9]+.out')))
+
+if(run2=='mean') {
+# Compare to predicting the mean
+
+  for(fld in 1:nfiles) {
+
+    load(paste0(run1, '.', (fld-1), '/image.Rdata'))
+
+    if(nrow(test.m1.mat)) {
+      
+    }
+
+
+  }
+}
+
 load(sum_file)
 
 prefix.split <- strsplit(run_prefix, split='/')

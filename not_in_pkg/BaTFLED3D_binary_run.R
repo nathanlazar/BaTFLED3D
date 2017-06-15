@@ -2,7 +2,7 @@
 
 # nathan dot lazar at gmail dot com
 
-# Usage: BaTFLED3D_run.R <mode1 data> <mode2 data> <mode3 data>
+# Usage: BaTFLED3D_binary_run.R <mode1 data> <mode2 data> <mode3 data>
 #                        <response>
 #                        <mode1 fold matrix>
 #                        <mode2 fold matrix>
@@ -20,39 +20,27 @@ library(BaTFLED3D)      # Note: package must be installed from .tar file
 # library(pryr)           # For monitoring memory usage
 # library(microbenchmark) # For monitoring run time
 
-source('kern_combine.R')  # Script to kernelize input features
-
 print('Packages loaded')
 args <- commandArgs(TRUE)
 
-# DREAM data predicting for cell lines
+# HEISER data predicting for cell lines
 test <- F
 if(test) 
-  args <- list(
-     '../DREAM7/CELLLINES/mut_exp_meth_rppa_cn.Rdata',
-     '../DREAM7/DRUGS/all_drug_mat.Rdata',
-#     'none',
-     '../HeiserData/Doses/dose_2block_mat.Rdata',
-     '../DREAM7/RESPONSES/norm_median_tensor_train.Rdata',
-     '../DREAM7/cl_5cv_mat.Rdata',
-#    '../HeiserData/Cell_Line_Data/exp_mat.Rdata',
-#    '../HeiserData/Drug_Data/dr_all_mat.Rdata', 
-#    'none', 
-#    '../HeiserData/Responses/norm_resid_tens.Rdata',
-#    '../HeiserData/Responses/Split/cl_train_param_trans_tens.Rdata',
-#    '../HeiserData/Responses/Split/cl_4cv_mat.Rdata', 
-#    '../HeiserData/Responses/Split/cl_loocv_mat.Rdata', 
+  args <- list('../HeiserData/Cell_Line_Data/exp_cna_meth_mat.Rdata',
+    '../HeiserData/Drug_Data/dr_all_mat.Rdata', 
+    'none', 
+    '../HeiserData/Responses/Split/cl_train_param_trans_tens.Rdata',
+    '../HeiserData/Responses/Split/cl_loocv_mat.Rdata', 
     'none', 'none',
-    'DREAMresults/test', 'decomp=Tucker', 'row.share=T',
-    'reps=50', 'warm.per=0.1', 'plot=F', 'cores=12',
-    'A1.intercept=T', 'A2.intercept=T', 'A3.intercept=T', 
+    'HEISERresults/test/', 'decomp=Tucker', 'row.share=T',
+    'reps=5', 'warm.per=0', 'plot=F', 'cores=1',
+    'A1.intercept=T', 'A2.intercept=T', 'A3.intercept=F', 
     'H1.intercept=T', 'H2.intercept=T', 'H3.intercept=T',  
-    'm1.sigma2=0.01','m2.sigma2=0.01','m3.sigma2=0.01',
-    'R1=5', 'R2=5', 'R3=5', 'normalize.for=none', 
-    'kern=T', 'kern.combine=linear', 'kern.scale=T',
-    'exp.s=1', 'meth.s=1', 'rppa.s=1', 'cn.s=1',
-    'padel.s=1',
-    'scale=F', 'fold=0')
+    'm1.sigma2=0.01','m2.sigma2=0.01','m3.sigma2=1',
+    'R1=4', 'R2=4', 'R3=4', 'normalize.for=mode12', 
+    'kern=T', 'kern.combine=prod', 
+    'anno.s=2', 'exp.s=2', 'cna.s=2', 'meth.s=2',
+    'scale=F', 'fold=1')
 
 # Report arguments and summary stats of the input objects
 print(unlist(args))
@@ -80,13 +68,11 @@ params <- get_model_params(args[9:length(args)])
 # Set some defaults 
 reps <- 10; warm.per <- 0.05
 multiplier <- 0
-parallel <- T
 normalize.for='none'
 fold <- 1
 scale <- T
 kern <- F
-kern.combine <- 'mean'
-kern.scale <- F
+kern.combine <- 'prod'
 
 # Override defaults if provided
 if(sum(grepl('^reps=', args)))
@@ -105,8 +91,6 @@ if(sum(grepl('^kern=', args)))
   kern <- as.logical(sub('kern=', '', args[grepl('^kern=', args)]))
 if(sum(grepl('^kern.combine=', args)))
   kern.combine <- sub('kern.combine=', '', args[grepl('^kern.combine=', args)])
-if(sum(grepl('^kern.scale=', args)))
-  kern.scale <- as.logical(sub('kern.scale=', '', args[grepl('^kern.scale=', args)]))
 
 if(params$parallel) {
   # Packages for registering parallel backend (depends on platform)
@@ -132,7 +116,6 @@ if(m3.file != 'none') m3.mat <- loadRData(m3.file)
 
 # Load the response data
 resp.tens <- loadRData(resp.file)
-resp.tens[resp.tens == Inf] <- NA
 
 # Load the matrices with names for cross validation
 if(m1.fold.file != 'none') m1.cv.fold <- loadRData(m1.fold.file)
@@ -161,9 +144,9 @@ m2.mat <- m2.mat[rownames(m2.mat) %in% dimnames(resp.tens)[[2]],,drop=F]
 m3.mat <- m3.mat[rownames(m3.mat) %in% dimnames(resp.tens)[[3]],,drop=F]
 
 # Set NA values to 0 in feature matrices
-# m1.mat[is.na(m1.mat)] <- 0
-# m2.mat[is.na(m2.mat)] <- 0
-# m3.mat[is.na(m3.mat)] <- 0
+m1.mat[is.na(m1.mat)] <- 0
+m2.mat[is.na(m2.mat)] <- 0
+m3.mat[is.na(m3.mat)] <- 0
 
 # Scale responses if multiplier non-zero
 if(multiplier != 0) {
@@ -226,58 +209,210 @@ if(scale) {
 
 # Transform predictors to kernel versions if 'kern=T'
 if(kern) {
-  kern.list <- kern_combine(train.m1.mat, train.m2.mat, train.m3.mat, 
-    test.m1.mat, test.m2.mat, test.m3.mat, kern.combine,
-    args)
-  train.m1.mat <- kern.list[['train.m1.mat']]
-  test.m1.mat  <- kern.list[['test.m1.mat']]
-  train.m2.mat <- kern.list[['train.m2.mat']]
-  test.m2.mat  <- kern.list[['test.m2.mat']]
-  train.m3.mat <- kern.list[['train.m3.mat']]
-  test.m3.mat  <- kern.list[['test.m3.mat']]
-  if(kern.combine=='linear') {
-    if(ncol(train.m1.mat)) {
-      orig.train.m1.mat <- kern.list[['orig.train.m1.mat']]
-      orig.test.m1.mat <- kern.list[['orig.test.m1.mat']]
+  if(ncol(m1.mat)) {
+    m1.types <- unique(sapply(strsplit(colnames(m1.mat), split='.', fixed=T), '[', 1))
+    # Get the kernel width for each type from args
+    m1.s <- rep(1, length(m1.types))
+    names(m1.s) <- m1.types
+    for(type in m1.types)
+      if(sum(grepl(type, args[9:length(args)])))
+        m1.s[[type]] <- as.numeric(
+          strsplit(grep(type, args[9:length(args)], value=T), split='=')[[1]][2])
+
+    m1.train.list <- list()
+    if(exists('test.m1'))
+      m1.test.list <- list()
+    for(i in 1:length(m1.s)) {
+      ind <- grep(m1.types[[i]], colnames(train.m1.mat))
+      m1.train.list[[i]] <- kernelize(train.m1.mat[,ind,drop=F], 
+        train.m1.mat[,ind,drop=F], m1.s[[i]])
+      colnames(m1.train.list[[i]]) <- paste(m1.types[[i]], 
+        colnames(m1.train.list[[i]]), sep='.')
+      if(exists('test.m1')) {
+        m1.test.list[[i]] <- kernelize(test.m1.mat[,ind,drop=F], 
+          train.m1.mat[,ind,drop=F], m1.s[[i]])
+        colnames(m1.test.list[[i]]) <- paste(m1.types[[i]], 
+          colnames(m1.test.list[[i]]), sep='.')
+      }
     }
-    if(ncol(train.m2.mat)) {
-      orig.train.m2.mat <- kern.list[['orig.train.m2.mat']]
-      orig.test.m2.mat <- kern.list[['orig.test.m2.mat']]
+
+    if(kern.combine == 'cat') {
+    ########### CHANGE THIS? #############
+    # Concatenate the unkernelized annotation data
+    # and the other two kernels 
+    ######################################
+      train.m1.mat <- cbind(cbind(
+        train.m1.mat[,grep('anno.', colnames(train.m1.mat)), drop=F],
+                           m1.train.list[[2]]), m1.train.list[[3]])
+      if(nrow(test.m1.mat))
+        test.m1.mat <- cbind(cbind(
+          test.m1.mat[,grep('anno.', colnames(test.m1.mat)), drop=F],
+          m1.test.list[[2]]), m1.test.list[[3]])
     }
-    if(ncol(train.m3.mat)) {
-      orig.train.m3.mat <- kern.list[['orig.train.m3.mat']]
-      orig.test.m3.mat <- kern.list[['orig.test.m3.mat']]
+    if(kern.combine == 'mean') {
+    # Take the average of the kernels
+      train.m1.mat <- m1.train.list[[1]]
+      if(nrow(test.m1.mat)) test.m1.mat <- m1.test.list[[1]]
+      if(length(m1.train.list) > 1) {
+        for(n in 2:length(m1.train.list)) {
+          train.m1.mat <- train.m1.mat + m1.train.list[[n]]
+          if(nrow(test.m1.mat))
+            test.m1.mat <- test.m1.mat + m1.test.list[[n]]
+        }
+        train.m1.mat <- train.m1.mat/length(m1.train.list)
+        if(nrow(test.m1.mat))  test.m1.mat <- test.m1.mat/length(m1.test.list)
+      }
     }
+    if(kern.combine == 'prod') {
+    # Take the product of the kernels
+      train.m1.mat <- m1.train.list[[1]]
+      if(nrow(test.m1.mat)) test.m1.mat <- m1.test.list[[1]]
+      if(length(m1.train.list) > 1) {
+        for(n in 2:length(m1.train.list)) {
+          train.m1.mat <- train.m1.mat * m1.train.list[[n]]
+          if(nrow(test.m1.mat)) test.m1.mat <- test.m1.mat * m1.test.list[[n]]
+        }
+      }
+    }
+    if(!nrow(test.m1.mat)) test.m1.mat <- train.m1.mat[0,]
   }
-  if(kern.scale) {
-    if(ncol(train.m1.mat)) {
-      m1.m <- mean(train.m1.mat)
-      m1.s <- sd(train.m1.mat)
-      train.m1.mat <- (train.m1.mat - m1.m)/m1.s
-      test.m1.mat <- (test.m1.mat - m1.m)/m1.s
+
+  if(ncol(m2.mat)) {
+    m2.types <- unique(sapply(strsplit(colnames(m2.mat), split='.', fixed=T), '[', 1))
+    m2.s <- rep(1, length(m2.types))
+    names(m2.s) <- m2.types
+    for(type in m2.types)
+      if(sum(grepl(type, args[9:length(args)])))
+        m2.s[[type]] <- as.numeric(
+          strsplit(grep(type, args[9:length(args)], value=T), split='=')[[1]][2])
+    m2.train.list <- list()
+    if(nrow(test.m2.mat)) m2.test.list <- list()
+    for(i in 1:length(m2.s)) {
+      ind <- grep(m2.types[[i]], colnames(train.m2.mat))
+      m2.train.list[[i]] <- kernelize(train.m2.mat[,ind,drop=F],
+        train.m2.mat[,ind,drop=F], m2.s[[i]])
+      colnames(m2.train.list[[i]]) <- paste(m2.types[[i]],
+        colnames(m2.train.list[[i]]), sep='.')
+      if(nrow(test.m2.mat)) {
+        m2.test.list[[i]] <- kernelize(test.m2.mat[,ind,drop=F],
+          train.m2.mat[,ind,drop=F], m2.s[[i]])
+        colnames(m2.test.list[[i]]) <- paste(m2.types[[i]],
+          colnames(m2.test.list[[i]]), sep='.')
+      }
     }
-    if(ncol(train.m2.mat)) {
-      m2.m <- mean(train.m2.mat)
-      m2.s <- sd(train.m2.mat)
-      train.m2.mat <- (train.m2.mat - m2.m)/m2.s
-      test.m2.mat <- (test.m2.mat - m2.m)/m2.s
+
+    if(kern.combine == 'cat') {
+    ########### CHANGE THIS? #############
+    # Concatenate the unkernelized target and class data
+    # and the other two kernels
+    #######################################
+      train.m2.mat <- cbind(cbind(
+        train.m2.mat[,grep('targ.|class.', colnames(train.m2.mat)), drop=F],
+                           m2.train.list[[3]]), m2.train.list[[4]])
+      if(nrow(test.m2.mat))
+        test.m2.mat <- cbind(cbind(
+          test.m2.mat[,grep('targ.|class.', colnames(test.m2.mat)), drop=F],
+          m2.test.list[[3]]), m2.test.list[[4]])
     }
-    if(ncol(train.m3.mat)) {
-      m3.m <- mean(train.m3.mat)
-      m3.s <- sd(train.m3.mat)
-      train.m3.mat <- (train.m3.mat - m3.m)/m3.s
-      test.m3.mat <- (test.m3.mat - m3.m)/m3.s
+    if(kern.combine == 'mean') {
+    # Take the average of the kernels
+      train.m2.mat <- m2.train.list[[1]]
+      if(nrow(test.m2.mat)) test.m2.mat <- m2.test.list[[1]]
+      if(length(m2.train.list) > 1) {
+        for(n in 2:length(m2.train.list)) {
+          train.m2.mat <- train.m2.mat + m2.train.list[[n]]
+          if(nrow(test.m2.mat)) test.m2.mat <- test.m2.mat + m2.test.list[[n]]
+        }
+        train.m2.mat <- train.m2.mat/length(m2.train.list)
+        if(nrow(test.m2.mat)) test.m2.mat <- test.m2.mat/length(m2.test.list)
+      }
     }
+    if(kern.combine == 'prod') {
+    # Take the product of the kernels
+      train.m2.mat <- m2.train.list[[1]]
+      if(nrow(test.m2.mat)) test.m2.mat <- m2.test.list[[1]]
+      if(length(m2.train.list) > 1) {
+        for(n in 2:length(m2.train.list)) {
+          train.m2.mat <- train.m2.mat * m2.train.list[[n]]
+          if(nrow(test.m2.mat)) test.m2.mat <- test.m2.mat * m2.test.list[[n]]
+        }
+      }
+    }
+    if(!nrow(test.m2.mat)) test.m2.mat <- train.m2.mat[0,]
+  }
+
+  if(ncol(m3.mat)) {
+    m3.types <- unique(sapply(strsplit(colnames(m3.mat), split='.', fixed=T), '[', 1))
+    m3.s <- rep(1, length(m3.types))
+    names(m3.s) <- m3.types
+    for(type in m3.types)
+      if(sum(grepl(type, args[9:length(args)])))
+        m3.s[[type]] <- as.numeric(strsplit(
+          grep(type, args[9:length(args)], value=T), split='=')[[1]][2])
+
+    m3.train.list <- list()
+    if(nrow(test.m3.mat)) m3.test.list <- list()
+    for(i in 1:length(m3.s)) {
+      ind <- grep(m3.types[[i]], colnames(train.m3.mat))
+      m3.train.list[[i]] <- kernelize(train.m3.mat[,ind,drop=F],
+        train.m3.mat[,ind,drop=F], m3.s[[i]])
+      colnames(m3.train.list[[i]]) <- paste(m3.types[[i]],
+        colnames(m3.train.list[[i]]), sep='.')
+      if(nrow(test.m3.mat)) {
+        m3.test.list[[i]] <- kernelize(test.m3.mat[,ind,drop=F],
+          train.m3.mat[,ind,drop=F], m3.s[[i]])
+        colnames(m3.test.list[[i]]) <- paste(m3.types[[i]],
+          colnames(m3.test.list[[i]]), sep='.')
+      }
+    }
+
+    if(kern.combine == 'cat') {
+    # Concatenate the kernels
+      train.m3.mat <- m3.train.list[[1]]
+      if(nrow(test.m3.mat)) test.m3.mat <- m3.test.list[[1]]
+      if(length(m3.train.list) > 1) {
+        for(n in 2:length(m3.train.list)) {
+          train.m3.mat <- cbind(train.m3.mat, m3.train.list[[n]])
+          if(nrow(test.m3.mat)) test.m3.mat <- cbind(test.m3.mat, m3.test.list[[n]])
+        }
+      }
+    }
+
+    if(kern.combine == 'mean') {
+    # Take the average of the kernels
+      train.m3.mat <- m3.train.list[[1]]
+      if(nrow(test.m3.mat)) test.m3.mat <- m3.test.list[[1]]
+      if(length(m3.train.list) > 1) {
+        for(n in 2:length(m3.train.list)) {
+          train.m3.mat <- train.m3.mat + m3.train.list[[n]]
+          if(nrow(test.m3.mat)) test.m3.mat <- test.m3.mat + m3.test.list[[n]]
+        }
+        if(nrow(test.m3.mat)) train.m3.mat <- train.m3.mat/length(m3.train.list)
+        test.m3.mat <- test.m3.mat/length(m3.test.list)
+      }
+    }
+    if(kern.combine == 'prod') {
+    # Take the product of the kernels
+      train.m3.mat <- m3.train.list[[1]]
+      if(nrow(test.m3.mat)) test.m3.mat <- m3.test.list[[1]]
+      if(length(m3.train.list) > 1) {
+        for(n in 2:length(m3.train.list)) {
+          train.m3.mat <- train.m3.mat * m3.train.list[[n]]
+          if(nrow(test.m3.mat)) test.m3.mat <- test.m3.mat * m3.test.list[[n]]
+        }
+      }
+    }
+    if(!nrow(test.m3.mat)) test.m3.mat <- train.m3.mat[0,]
   }
 }
 
 # Remove predictors that have no variance in the training data
 # or have only one non-zero value
 if(ncol(train.m1.mat)) {
-  train.m1.mat <- train.m1.mat[,apply(train.m1.mat, 2, function(x) sd(x) > 0),drop=F]
+  train.m1.mat <- train.m1.mat[,apply(train.m1.mat, 2, function(x) sd(x) > 0)]
   m1.one <- apply(train.m1.mat, 2, function(x) sum(x==1)==1) &
     apply(train.m1.mat, 2, function(x) sum(x==0)==(nrow(train.m1.mat)-1))
-  train.m1.mat <- train.m1.mat[,!m1.one,drop=F]
+  train.m1.mat <- train.m1.mat[,!m1.one]
   # Also remove these predictors from testing data
   test.m1.mat <- test.m1.mat[,match(dimnames(train.m1.mat)[[2]], 
                              dimnames(test.m1.mat)[[2]]),drop=F]
@@ -304,9 +439,6 @@ if(ncol(train.m3.mat)) {
   test.m3.mat <- test.m3.mat[,match(dimnames(train.m3.mat)[[2]], 
                              dimnames(test.m3.mat)[[2]]),drop=F]
 }
-
-# If there are NA values in feature matrices throw an error
-if(sum(is.na(train.m1.mat))) stop('NAs in feature matrices!')
 
 # Reorder responses to match the inputs
 resp.tens <- resp.tens[match(rownames(m1.mat), dimnames(resp.tens)[[1]], nomatch=0),
@@ -612,7 +744,7 @@ for(m in c('m1', 'm2', 'm3', 'm1m2', 'm1m3', 'm2m3', 'm1m2m3')) {
 
 ## TODO ###################################################
 # For parameters, need to transform back to original space, 
-# if they've been log transformed etc.
+# since they've been log transformed etc.
 ###########################################################
 
 # Get tensors of mean predictions for comparisons
@@ -646,18 +778,15 @@ if(length(test.data.m3)) {
 }
 if(length(test.data.m1m2)) {
   mean.tens.list[['m1m2']] <- array(0, dim=dim(test.data.m1m2$resp))
-  for(i in 1:dim(test.data.m1m2$resp)[[1]]) for(j in 1:dim(test.data.m1m2$resp)[[2]])
-    mean.tens.list[['m1m2']][i,j,] <- apply(train.data$resp, 3, mean, na.rm=T)
+  mean.tens.list[['m1m2']] <- apply(train.data$resp, 3, mean, na.rm=T)
 }
 if(length(test.data.m1m3)) {
   mean.tens.list[['m1m3']] <- array(0, dim=dim(test.data.m1m3$resp))
-  for(i in 1:dim(test.data.m1m3$resp)[[1]]) for(k in 1:dim(test.data.m1m3$resp)[[3]])
-    mean.tens.list[['m1m3']][i,,k] <- apply(train.data$resp, 2, mean, na.rm=T)
+  mean.tens.list[['m1m3']] <- apply(train.data$resp, 2, mean, na.rm=T)
 }
 if(length(test.data.m2m3)) {
   mean.tens.list[['m2m3']] <- array(0, dim=dim(test.data.m2m3$resp))
-  for(j in 1:dim(test.data.m2m3$resp)[[2]]) for(k in 1:dim(test.data.m2m3$resp)[[3]])
-    mean.tens.list[['m2m3']][,j,k] <- apply(train.data$resp, 1, mean, na.rm=T)
+  mean.tens.list[['m2m3']] <- apply(train.data$resp, 1, mean, na.rm=T)
 }
 if(length(test.data.m1m2m3)) {
   mean.tens.list[['m1m2m3']] <- array(0, dim=dim(test.data.m1m2m3$resp))
@@ -755,7 +884,7 @@ if(exists('m1.mean.RMSE'))
 if(exists('m2.mean.RMSE'))
   abline(h=m2.mean.RMSE, col='blue', lty=2, lwd=2)
 if(exists('m3.mean.RMSE'))
-  abline(h=m3.mean.RMSE, col='yellow', lty=2, lwd=2)
+  abline(h=m2.mean.RMSE, col='yellow', lty=2, lwd=2)
 if(exists('m1m2.mean.RMSE'))
   abline(h=m1m2.mean.RMSE, col='purple', lty=3, lwd=2)
 if(exists('m1m3.mean.RMSE'))
