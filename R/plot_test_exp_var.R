@@ -9,7 +9,7 @@
 #' @param ylim Limits of the y-axis.
 #' @param main Main title of the plot
 
-plot_test_exp_var <- function(test.rersults, ylim='default', main=NA,
+plot_test_exp_var <- function(test.results, ylim='default', main=NA,
   baselines=c('warm'=NA, 'm1'=NA, 'm2'=NA, 'm3'=NA, 'm1m2'=NA, 'm1m3'=NA, 'm2m3'=NA, 'm1m2m3'=NA)) {
   # Subset to just explained variance data
   sub.results <- test.results[,grepl('exp.var', names(test.results))]

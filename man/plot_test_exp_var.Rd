@@ -4,19 +4,19 @@
 \alias{plot_test_exp_var}
 \title{Plot explained variance results from test data}
 \usage{
-plot_test_exp_var(test.rersults, ylim = "default", main = NA,
+plot_test_exp_var(test.results, ylim = "default", main = NA,
   baselines = c(warm = NA, m1 = NA, m2 = NA, m3 = NA, m1m2 = NA, m1m3 = NA,
   m2m3 = NA, m1m2m3 = NA))
 }
 \arguments{
+\item{test.results}{an object generated with \code{test_results}}
+
 \item{ylim}{Limits of the y-axis.}
 
 \item{main}{Main title of the plot}
 
 \item{baselines}{named vector of baseline values to draw as dotted horizontal 
 lines e.g. c('warm'=0, 'm1'=0, 'm1m2'=0, 'm1m2m3'=0)}
-
-\item{test.results}{an object generated with \code{test_results}}
 }
 \description{
 Plot explained variance results from test data
