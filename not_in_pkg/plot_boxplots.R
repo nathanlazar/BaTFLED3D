@@ -14,17 +14,21 @@ library(gridExtra)
 
 args <- commandArgs(TRUE)
 
-test <- F
+test <- T
 if(test) {
   args <- c('Results/CV_design_matrix.txt', 'Results/CV/',
-            'Heiser data: cross-validation results')
+            'CTD2 data: cross-validation results')
+  # args <- c('Results/final_design_matrix.txt', 'Results/Final/',
+  #           'CTD2 data: final test results')
+  # args <- c('Results/CV_design_matrix.txt', 'Results/CV/',
+  #           'Heiser data: cross-validation results')
   # args <- c('Results/CV_kern_design_matrix.txt', 'Results/CV_kernels/',
   #           'Heiser data: cross-validation results with kernelized inputs')
   # args <- c('Results/Final_design_matrix.txt', 'Results/Final/',
   #           'Heiser data: final test results')
   # args <- c('Results/Final_kern_design_matrix.txt', 'Results/Final_kernels/',
   #           'Heiser data: final test results with kernelized inputs')
-  if(exists('results.df')) rm(results.df)  
+  # if(exists('results.df')) rm(results.df)  
 }
 design.df <- data.frame(read.table(args[[1]], sep='\t', header=T, stringsAsFactors=F))
 design.df <- design.df[design.df$task!='Warm',]
@@ -32,7 +36,7 @@ dir <- args[2]
 title <- args[3]
 
 design.df$file <- sapply(design.df$run, function(x)
-  grep(x, list.files(path=dir, recursive=T), value=T))
+  grep('summary', grep(x, list.files(path=dir, recursive=T), value=T), value=T))
 
 loadRData <- function(x) {
   load(x)
@@ -127,23 +131,43 @@ res.tmp$value[res.tmp$value > 3] <- 3
 # Plot where all the axes are free
 p.free <- ggplot(res.tmp, aes(x=model, y=value, color=class)) +
   geom_jitter(width=0.2, alpha=0.5) +
+  scale_color_hue(breaks=unique(res.tmp$class), drop=F) +
   geom_boxplot(color='black', fill= "transparent", outlier.alpha=0) +
   facet_wrap(measure~mode, scales='free') +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust=0),
         axis.title = element_blank())
-# p.free
+p.free
+
+p.pearson <- ggplot(res.tmp[res.tmp$measure=='Pearson cor.',], 
+                    aes(x=model, y=value, color=class)) +
+  geom_jitter(width=0.2, alpha=0.5) +
+  # scale_color_hue(breaks=unique(res.tmp$class), drop=F) +
+  geom_boxplot(color='black', fill= "transparent", outlier.alpha=0) +
+  facet_grid(.~mode, scales='free') +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust=0),
+        axis.title = element_blank())
+p.pearson
 
 pdf(paste0(dir, 'boxplot.pdf'), height=12, width=14)
 p.free
 dev.off()
 
-p.cl <- ggplot(res.tmp[res.tmp$mode=='Cell line',], 
-                 aes(x=model, y=value, color=class)) +
-  geom_jitter(width=0.2, alpha=0.5) +
-  geom_boxplot(color='black', fill= "transparent", outlier.alpha=0) +
-  stat_summary(fun.y=mean, colour="red", geom="point") +
-  facet_wrap(measure~mode, scales='free') +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust=0)) 
+png(paste0(dir, 'boxplot.png'), height=823, width=960)
+p.free
+dev.off()
+
+png(paste0(dir, 'pearson_boxplot.png'), height=480, width=480*2)
+p.pearson
+dev.off()
+
+# p.cl <- ggplot(res.tmp[res.tmp$mode=='Cell line',], 
+#                  aes(x=model, y=value, color=class)) +
+#   geom_jitter(width=0.2, alpha=0.5) +
+#   scale_color_hue(breaks=unique(res.tmp$class), drop=F) +
+#   geom_boxplot(color='black', fill= "transparent", outlier.alpha=0) +
+#   stat_summary(fun.y=mean, colour="red", geom="point") +
+#   facet_wrap(measure~mode, scales='free') +
+#   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust=0)) 
 # p.cl
 
 # Plot head to head for cell lines and drugs
@@ -181,9 +205,10 @@ head_to_head <- function(results.df, model1, model2, mode1, measure1,
     labs(x=model1, y=model2) +
     guides(color=FALSE) + 
     scale_color_manual(values=c('1'='red', '2'='black', '3'='blue')) +
-    annotate('text', x=c(0.1,xlim[2]*0.9), y=c(ylim[2]*0.9,0.1),
+    annotate('text', x=c(0.15,xlim[2]*0.9), y=c(ylim[2]*0.9,0.1),
              label=c(sprintf('%.1f%%', mean(sub.df$model1 < sub.df$model2)*100),
-                     sprintf('%.1f%%', mean(sub.df$model1 > sub.df$model2)*100)))
+                     sprintf('%.1f%%', mean(sub.df$model1 > sub.df$model2)*100)),
+             color='blue')
   return(p)
 }
 
@@ -210,9 +235,15 @@ for(m1 in rep.models) for(m2 in rep.models) {
 }
 
 # Display head to head plots comparing with mean prediction
-if(('CP retrain' %in% results.df$model) | ('CP selected' %in% results.df$model)){
-  selected <- c(3:9,1,10:12,1,13:16)
-} else selected <- c(3:9,1,10:12,1,13,14)
+if('N.N. 1L' %in% results.df$model) {
+  if(('CP retrain' %in% results.df$model) | ('CP selected' %in% results.df$model)){
+    selected <- c(3:9,1,10:12,1,13:16)
+  } else selected <- c(3:9,1,10:12,1,13,14)
+} else {
+  if(('CP retrain' %in% results.df$model) | ('CP selected' %in% results.df$model)){
+    selected <- c(3:10,16:19,43:46)
+  } else selected <- c(3:7,14:12,1,13,14)
+}
 
 pdf(paste0(dir, 'cl_rmse_head2head.pdf'), height=10, width=13)
 grid.arrange(grobs=rmse.h.to.h.m1[selected], ncol=4,
@@ -240,7 +271,7 @@ for(m1 in rep.models) for(m2 in rep.models) {
   if(sum(results.df$model==m1) & sum(results.df$model==m2)) {
     i <- i+1
     rmse.h.to.h.m2[[i]] <- head_to_head(results.df, model1=m1, model2=m2, 
-      mode1='Drug', measure1='NRMSE', xlim=c(0,1.5), ylim=c(0,2))
+      mode1='Drug', measure1='NRMSE', xlim=c(0,2), ylim=c(0,2))
     pearson.h.to.h.m2[[i]] <- head_to_head(results.df, 
       model1=m1, model2=m2, mode1='Drug', measure1='Pearson cor.')
   }
@@ -280,17 +311,15 @@ for(m1 in rep.models) for(m2 in rep.models) {
 }
 
 # Display head to head plots comparing with mean prediction
-if(('CP retrain' %in% results.df$model) | ('CP selected' %in% results.df$model)){
-  selected <- c(3:9,1,10:12,1,13:16)
-} else selected <- c(3:9,1,10:12,1,13,14)
-
-pdf(paste0(dir, 'cldr_rmse_head2head.pdf'), height=10, width=13)
+# pdf(paste0(dir, 'cldr_rmse_head2head.pdf'), height=10, width=13)
+png(paste0(dir, 'cldr_rmse_head2head.png'), height=686, width=891)
 grid.arrange(grobs=rmse.h.to.h.m1m2[selected], ncol=4,
   top=textGrob('Normalized RMSE performance on cold-test cell line/drug combinations',
                gp=gpar(fontsize=20)))
 dev.off()
 
-pdf(paste0(dir, 'cldr_pearson_head2head.pdf'), height=10, width=13)
+# pdf(paste0(dir, 'cldr_pearson_head2head.pdf'), height=10, width=13)
+png(paste0(dir, 'cldr_pearson_head2head.png'), height=686, width=891)
 grid.arrange(grobs=pearson.h.to.h.m1m2[selected], ncol=4,
   top=textGrob('Pearson correlation performance on cold-test cell line/drug combinations',
                gp=gpar(fontsize=20)))

@@ -17,6 +17,7 @@ print('Opened file')
 
 library(methods)
 library(BaTFLED3D)      # Note: package must be installed from .tar file
+sessionInfo()
 # library(pryr)           # For monitoring memory usage
 # library(microbenchmark) # For monitoring run time
 
@@ -25,34 +26,38 @@ source('kern_combine.R')  # Script to kernelize input features
 print('Packages loaded')
 args <- commandArgs(TRUE)
 
+save.a.lot <- 1  # Save after this many iterations
+
 # DREAM data predicting for cell lines
-test <- F
-if(test) 
-  args <- list(
-     '../DREAM7/CELLLINES/mut_exp_meth_rppa_cn.Rdata',
-     '../DREAM7/DRUGS/all_drug_mat.Rdata',
-#     'none',
-     '../HeiserData/Doses/dose_2block_mat.Rdata',
-     '../DREAM7/RESPONSES/norm_median_tensor_train.Rdata',
-     '../DREAM7/cl_5cv_mat.Rdata',
-#    '../HeiserData/Cell_Line_Data/exp_mat.Rdata',
-#    '../HeiserData/Drug_Data/dr_all_mat.Rdata', 
-#    'none', 
-#    '../HeiserData/Responses/norm_resid_tens.Rdata',
-#    '../HeiserData/Responses/Split/cl_train_param_trans_tens.Rdata',
-#    '../HeiserData/Responses/Split/cl_4cv_mat.Rdata', 
-#    '../HeiserData/Responses/Split/cl_loocv_mat.Rdata', 
+testing <- F
+if(testing) 
+  args <- list('../HeiserData/Cell_Line_Data/Kerns/train_harmonic_kern.Rdata',
+     # '../HeiserData/Cell_Line_Data/anno_mat.Rdata',
+     # '../HeiserData/Cell_Line_Data/exp_mat.Rdata',
+     # '../HeiserData/Drug_Data/dr_all_mat.Rdata',
+     'none',
+     'none',
+     '../HeiserData/Responses/norm_tens1000.Rdata',
+     '../HeiserData/Responses/Split/cl_10cv_mat.Rdata',
     'none', 'none',
-    'DREAMresults/test', 'decomp=Tucker', 'row.share=T',
-    'reps=50', 'warm.per=0.1', 'plot=F', 'cores=12',
-    'A1.intercept=T', 'A2.intercept=T', 'A3.intercept=T', 
+    'HEISERresults/test_5x5x5_kern_nodr', 
+    'decomp=Tucker', 'row.share=T',
+    'reps=30', 'warm.per=0.01', 'plot=F', 'cores=12',
+    'A1.intercept=T', 'A2.intercept=F', 'A3.intercept=F', 
     'H1.intercept=T', 'H2.intercept=T', 'H3.intercept=T',  
-    'm1.sigma2=0.01','m2.sigma2=0.01','m3.sigma2=0.01',
+    'm1.sigma2=0.01', 'm2.sigma2=1','m3.sigma2=1',
+    'm1.alpha=1', 'm2.alpha=1', 'm3.alpha=1',
+    'm1.beta=1',   'm2.beta=1',   'm3.beta=1',
+    'core.alpha=1',    'core.beta=1',
+    'core.1D.alpha=1', 'core.1D.beta=1',
+    'core.2D.alpha=1', 'core.2D.beta=1',
+    'core.3D.alpha=1', 'core.3D.beta=1',
+    'sigma2=auto',
     'R1=5', 'R2=5', 'R3=5', 'normalize.for=none', 
-    'kern=T', 'kern.combine=linear', 'kern.scale=T',
-    'exp.s=1', 'meth.s=1', 'rppa.s=1', 'cn.s=1',
-    'padel.s=1',
-    'scale=F', 'fold=0')
+    'kern=F', 
+    # 'kern.combine=linear', 'kern.scale=T',
+    # 'exp.s=1', 'meth.s=1', 'rppa.s=1', 'cn.s=1', 'padel.s=1',
+    'scale=F', 'fold=0', 'center=F')
 
 # Report arguments and summary stats of the input objects
 print(unlist(args))
@@ -83,7 +88,8 @@ multiplier <- 0
 parallel <- T
 normalize.for='none'
 fold <- 1
-scale <- T
+scale <- F
+center <- F
 kern <- F
 kern.combine <- 'mean'
 kern.scale <- F
@@ -101,6 +107,8 @@ if(sum(grepl('^fold=', args)))
   fold <- as.numeric(sub('fold=', '', args[grepl('^fold=', args)]))+1
 if(sum(grepl('^scale=', args)))
   scale <- as.logical(sub('scale=', '', args[grepl('^scale=', args)]))
+if(sum(grepl('^center=', args)))
+  center <- as.logical(sub('center=', '', args[grepl('^center=', args)]))
 if(sum(grepl('^kern=', args)))
   kern <- as.logical(sub('kern=', '', args[grepl('^kern=', args)]))
 if(sum(grepl('^kern.combine=', args)))
@@ -135,9 +143,21 @@ resp.tens <- loadRData(resp.file)
 resp.tens[resp.tens == Inf] <- NA
 
 # Load the matrices with names for cross validation
-if(m1.fold.file != 'none') m1.cv.fold <- loadRData(m1.fold.file)
-if(m2.fold.file != 'none') m2.cv.fold <- loadRData(m2.fold.file)
-if(m3.fold.file != 'none') m3.cv.fold <- loadRData(m3.fold.file)
+if(m1.fold.file != 'none') {
+  m1.cv.fold <- loadRData(m1.fold.file)
+  all.m1 <- unique(as.vector(m1.cv.fold))
+  m1.mat <- m1.mat[rownames(m1.mat) %in% all.m1,]
+}
+if(m2.fold.file != 'none') {
+  m2.cv.fold <- loadRData(m2.fold.file)
+  all.m2 <- unique(as.vector(m2.cv.fold))
+  m2.mat <- m2.mat[rownames(m2.mat) %in% all.m2,]
+}
+if(m3.fold.file != 'none') {
+  m3.cv.fold <- loadRData(m3.fold.file)
+  all.m3 <- unique(as.vector(m3.cv.fold))
+  m3.mat <- m3.mat[rownames(m3.mat) %in% all.m3,]
+}
 
 # Make empty matrices if no data is present
 if(m1.file == 'none') {
@@ -175,8 +195,10 @@ if(multiplier != 0) {
 ###############################################################
 if(exists('m1.cv.fold')) {
   test.m1 <- m1.cv.fold[fold,]
-  test.m1.mat <- m1.mat[row.names(m1.mat) %in% test.m1,,drop=F]
-  train.m1.mat <- m1.mat[!(row.names(m1.mat) %in% test.m1),,drop=F]
+  test.m1.mat <- m1.mat[row.names(m1.mat) %in% test.m1,
+    !(colnames(m1.mat) %in% test.m1),drop=F]
+  train.m1.mat <- m1.mat[!(row.names(m1.mat) %in% test.m1),
+    !(colnames(m1.mat) %in% test.m1),drop=F]
 } else {
   test.m1.mat <- m1.mat[0,,drop=F]
   train.m1.mat <- m1.mat
@@ -184,8 +206,10 @@ if(exists('m1.cv.fold')) {
 
 if(exists('m2.cv.fold')) {
   test.m2 <- m2.cv.fold[fold,]
-  test.m2.mat <- m2.mat[row.names(m2.mat) %in% test.m2,,drop=F]
-  train.m2.mat <- m2.mat[!(row.names(m2.mat) %in% test.m2),,drop=F]
+  test.m2.mat <- m2.mat[row.names(m2.mat) %in% test.m2,
+    !(colnames(m2.mat) %in% m2.mat),drop=F]
+  train.m2.mat <- m2.mat[!(row.names(m2.mat) %in% test.m2),
+    !(colnames(m2.mat) %in% m2.mat),drop=F]
 } else {
   test.m2.mat <- m2.mat[0,,drop=F]
   train.m2.mat <- m2.mat
@@ -193,35 +217,87 @@ if(exists('m2.cv.fold')) {
 
 if(exists('m3.cv.fold')) {
   test.m3 <- m3.cv.fold[fold,]
-  test.m3.mat <- m3.mat[row.names(m3.mat) %in% test.m3,,drop=F]
-  train.m3.mat <- m3.mat[!(row.names(m3.mat) %in% test.m3),,drop=F]
+  test.m3.mat <- m3.mat[row.names(m3.mat) %in% test.m3,
+    !(colnames(m3.mat) %in% test.m3),drop=F]
+  train.m3.mat <- m3.mat[!(row.names(m3.mat) %in% test.m3),
+    !(colnames(m3.mat) %in% test.m3),drop=F]
 } else {
   test.m3.mat <- m3.mat[0,,drop=F]
   train.m3.mat <- m3.mat
 }
 
-# Scale non-binary columns of input matrices
-if(scale) {
-  m1.bin <- apply(m1.mat, 2, min)==0 & apply(m1.mat, 2, max)==1 &
-            apply(m1.mat, 2, function(x) length(unique(x)))==2
-  scld <- scale(train.m1.mat[,!m1.bin,drop=F])
-  train.m1.mat[,!m1.bin] <- scld
-  test.m1.mat[,!m1.bin] <- scale(test.m1.mat[,!m1.bin,drop=F], 
-    scale=attr(scld, 'scaled:scale'), center=attr(scld, 'scaled:center')) 
+# Scale columns of input matrices and remove columns with no variance
+# in the training data
+if(scale & center) {
+  train.m1.mat <- scale(train.m1.mat)
+  test.m1.mat <- scale(test.m1.mat, scale=attr(train.m1.mat, 'scaled:scale'),
+                                    center=attr(train.m1.mat, 'scaled:center'))
+  test.mat.mat <- test.m1.mat[,apply(is.na(train.m1.mat), 2, sum)==0]
+  train.m1.mat <- train.m1.mat[,apply(is.na(train.m1.mat), 2, sum)==0]
+  if(ncol(train.m1.mat)) {
+    test.m1.mat <- test.m1.mat[,apply(train.m1.mat==Inf, 2, sum)==0]
+    train.m1.mat <- train.m1.mat[,apply(train.m1.mat==Inf, 2, sum)==0]
+  }
 
-  m2.bin <- apply(m2.mat, 2, min)==0 & apply(m2.mat, 2, max)==1 &
-            apply(m2.mat, 2, function(x) length(unique(x)))==2
-  scld <- scale(train.m2.mat[,!m2.bin,drop=F])
-  train.m2.mat[,!m2.bin] <- scld
-  test.m2.mat[,!m2.bin] <- scale(test.m2.mat[,!m2.bin,drop=F],
-    scale=attr(scld, 'scaled:scale'), center=attr(scld, 'scaled:center'))
+  train.m2.mat <- scale(train.m2.mat)
+  test.m2.mat <- scale(test.m2.mat, scale=attr(train.m2.mat, 'scaled:scale'),
+                                    center=attr(train.m2.mat, 'scaled:center'))
+  test.mat.mat <- test.m2.mat[,apply(is.na(train.m2.mat), 2, sum)==0]
+  train.m2.mat <- train.m2.mat[,apply(is.na(train.m2.mat), 2, sum)==0]
+  if(ncol(train.m2.mat)) {
+    test.m2.mat <- test.m2.mat[,apply(train.m2.mat==Inf, 2, sum)==0]
+    train.m2.mat <- train.m2.mat[,apply(train.m2.mat==Inf, 2, sum)==0]
+  }
 
-  m3.bin <- apply(m3.mat, 2, min)==0 & apply(m3.mat, 2, max)==1 &
-            apply(m3.mat, 2, function(x) length(unique(x)))==2
-  scld <- scale(train.m3.mat[,!m3.bin,drop=F])
-  train.m3.mat[,!m3.bin] <- scld
-  test.m3.mat[,!m3.bin] <- scale(test.m3.mat[,!m3.bin,drop=F],
-    scale=attr(scld, 'scaled:scale'), center=attr(scld, 'scaled:center'))
+  train.m3.mat <- scale(train.m3.mat)
+  test.m3.mat <- scale(test.m3.mat, scale=attr(train.m3.mat, 'scaled:scale'),
+                                    center=attr(train.m3.mat, 'scaled:center'))
+  test.mat.mat <- test.m3.mat[,apply(is.na(train.m3.mat), 2, sum)==0]
+  train.m3.mat <- train.m3.mat[,apply(is.na(train.m3.mat), 2, sum)==0]
+  if(ncol(train.m3.mat)) {
+    test.m3.mat <- test.m3.mat[,apply(train.m3.mat==Inf, 2, sum)==0]
+    train.m3.mat <- train.m3.mat[,apply(train.m3.mat==Inf, 2, sum)==0]
+  }
+
+} else if(scale & !center) {
+  train.m1.mat <- scale(train.m1.mat, center=F, scale=apply(train.m1.mat, 2, sd, na.rm=T))
+  test.m1.mat <- scale(test.m1.mat, scale=attr(train.m1.mat, 'scaled:scale'), center=F)
+  test.m1.mat <- test.m1.mat[,apply(is.na(train.m1.mat), 2, sum)==0]
+  train.m1.mat <- train.m1.mat[,apply(is.na(train.m1.mat), 2, sum)==0]
+  if(ncol(train.m1.mat)) {
+    test.m1.mat <- test.m1.mat[,apply(train.m1.mat==Inf, 2, sum)==0]
+    train.m1.mat <- train.m1.mat[,apply(train.m1.mat==Inf, 2, sum)==0]
+  }
+
+  train.m2.mat <- scale(train.m2.mat, center=F, scale=apply(train.m2.mat, 2, sd, na.rm=T))
+  test.m2.mat <- scale(test.m2.mat, scale=attr(train.m2.mat, 'scaled:scale'), center=F)
+  test.m2.mat <- test.m2.mat[,apply(is.na(train.m2.mat), 2, sum)==0]
+  train.m2.mat <- train.m2.mat[,apply(is.na(train.m2.mat), 2, sum)==0]
+  if(ncol(train.m2.mat)) {
+    test.m2.mat <- test.m2.mat[,apply(train.m2.mat==Inf, 2, sum)==0]
+    train.m2.mat <- train.m2.mat[,apply(train.m2.mat==Inf, 2, sum)==0]
+  }
+
+  train.m3.mat <- scale(train.m3.mat, center=F, scale=apply(train.m3.mat, 2, sd, na.rm=T))
+  test.m3.mat <- scale(test.m3.mat, scale=attr(train.m3.mat, 'scaled:scale'), center=F)
+  test.m3.mat <- test.m3.mat[,apply(is.na(train.m3.mat), 2, sum)==0]
+  train.m3.mat <- train.m3.mat[,apply(is.na(train.m3.mat), 2, sum)==0]
+  if(ncol(train.m3.mat)) {
+    test.m3.mat <- test.m3.mat[,apply(train.m3.mat==Inf, 2, sum)==0]
+    train.m3.mat <- train.m3.mat[,apply(train.m3.mat==Inf, 2, sum)==0]
+  }
+} else if(center & !scale) {
+  train.m1.mat <- scale(train.m1.mat, scale=F)
+  test.m1.mat <- scale(test.m1.mat, center=attr(train.m1.mat, 'scaled:center'),
+    scale=F)
+
+  train.m2.mat <- scale(train.m2.mat, scale=F)
+  test.m2.mat <- scale(test.m2.mat, center=attr(train.m2.mat, 'scaled:center'), 
+    scale=F)
+
+  train.m3.mat <-  scale(train.m3.mat, scale=F)
+  test.m3.mat <- scale(test.m3.mat, center=attr(train.m3.mat, 'scaled:center'), 
+    scale=F)
 }
 
 # Transform predictors to kernel versions if 'kern=T'
@@ -306,7 +382,9 @@ if(ncol(train.m3.mat)) {
 }
 
 # If there are NA values in feature matrices throw an error
-if(sum(is.na(train.m1.mat))) stop('NAs in feature matrices!')
+if(sum(is.na(train.m1.mat))) stop('NAs in mode 1 feature matrix!')
+if(sum(is.na(train.m2.mat))) stop('NAs in mode 2 feature matrix!')
+if(sum(is.na(train.m3.mat))) stop('NAs in mode 3 feature matrix!')
 
 # Reorder responses to match the inputs
 resp.tens <- resp.tens[match(rownames(m1.mat), dimnames(resp.tens)[[1]], nomatch=0),
@@ -402,28 +480,30 @@ if(warm.per > 0) {
   I <- dim(resp.train)[1]
   J <- dim(resp.train)[2]
   K <- dim(resp.train)[3]
-  # If all modes are different, assume the third mode is dose and remove 
-  # warm data across all doses
-  if((m1.file != m2.file) & (m1.file != m3.file) & (m2.file != m3.file)) {0
-    mask <- sample(I*J, round(warm.per*I*J))
+  # If there is no predictor data for the third mode, 
+  # assume the third mode is dose and remove warm data across all doses
+  if(m3.file == 'none') {
+    non.missing <- which(apply(is.na(resp.train), c(1,2), sum)!=K)
+    mask <- sample(non.missing, round(warm.per*length(non.missing)))
     for(k in 1:K) 
       resp.train[,,k][mask] <- NA
-  } 
-  # otherwise remove randomly but the same for matching modes
-  if(m1.file == m2.file) {
-    mask <- sample(I*K, (round(warm.per*I*K)))
-    for(m in mask) {
-      i <- m %% I + 1
-      k <- (m-1) %/% I +1
-      resp.train[i,i,k] <- NA
+  } else {
+    # otherwise remove randomly but the same for matching modes
+    if(m1.file == m2.file & m1.file != 'none') {
+      mask <- sample(I*K, (round(warm.per*I*K)))
+      for(m in mask) {
+        i <- m %% I + 1
+        k <- (m-1) %/% I +1
+        resp.train[i,i,k] <- NA
+      }
     }
-  }
-  if(m2.file == m3.file) {
-    mask <- sample(I*J, (round(warm.per*I*J)))
-    for(m in mask) {
-      i <- m %% I + 1
-      j <- (m-1) %/% I +1
-    resp.train[i,j,j] <- NA
+    if(m2.file == m3.file & m2.file != 'none') {
+      mask <- sample(I*J, (round(warm.per*I*J)))
+      for(m in mask) {
+        i <- m %% I + 1
+        j <- (m-1) %/% I +1
+      resp.train[i,j,j] <- NA
+      }
     }
   }
 }
@@ -502,9 +582,9 @@ print(sprintf('Cold start predictions will be made for %d mode1 %d mode2 and %d 
 print(sprintf('using %d mode 1 predictors, %d mode 2 and %d mode3 predictors.',
               ncol(m1.mat), ncol(m2.mat), ncol(m3.mat)))
 
-# If params$sigma2 is 'auto' set this value to the variance of the training response data
+# If params$sigma2 is 'auto' set this value to the standard deviation of the training response data
 if(params$sigma2=='auto')
-  params$sigma2 <- var(resp.train, na.rm=T)
+  params$sigma2 <- sd(resp.train, na.rm=T)
 
 # Clean up:
 # rm(train.m1.mat, train.m2.mat, train.m3.mat, test.m1.mat, test.m2.mat, test.m3.mat, resp.train, 
@@ -546,15 +626,18 @@ for(i in (trained$iter+1):reps) {
   train(d=train.data, m=trained, new.iter=1, params=params)
   
   # Get cold results
-  if(ncol(m1.mat) | ncol(m2.mat) | ncol(m3.mat)) 
+  if(warm.per | ncol(m1.mat) | ncol(m2.mat) | ncol(m3.mat)) 
     test.results <- test_results(m=trained, d=train.data, test.results=test.results,
                                  warm.resp=warm.resp, test.m1=test.data.m1, 
                                  test.m2=test.data.m2, test.m3=test.data.m3,
                                  test.m1m2=test.data.m1m2, test.m1m3=test.data.m1m3,
                                  test.m2m3=test.data.m2m3, test.m1m2m3=test.data.m1m2m3)
   
-  # Save every 10 iterations
-  # if((i %% 10) ==0) save.image(paste0(out.dir, 'image.Rdata'))
+  # Save every save.a.lot iterations
+  if((i %% save.a.lot) ==0) save.image(paste0(out.dir, 'image.Rdata'))
+
+  # Collect garbage (may help with memory)
+  gc()
 }
 
 # Stop cluster (if using parallel package)

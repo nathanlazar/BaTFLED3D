@@ -15,7 +15,7 @@ design.df <- data.frame(read.table(args[[1]], sep='\t', header=T, stringsAsFacto
 dir <- args[2]
 
 design.df$file <- sapply(design.df$run, function(x)
-  grep(x, list.files(path=dir, recursive=T), value=T))
+  grep('summary', grep(x, list.files(path=dir, recursive=T), value=T), value=T))
 
 loadRData <- function(file) {
   load(file)
@@ -105,7 +105,7 @@ for(meas in c('RMSE', 'exp.var', 'p.cor', 's.cor')) {
   cat('\\resizebox*{\\textwidth}{!}{\n')
   cat('\\begin{tabular}{lccccc}\n')
   cat('\\toprule\n')
-  cat('& Training & Warm & Cell lines & Drugs\n')
+  cat('& Training* & Warm & Cell lines & Drugs\n')
   cat('& \\multicolumn{1}{p{1.5cm}}{\\centering Cell lines \\& drugs}  \\\\\n')
   cat('\\cmidrule{2-6}\n')
   for(i in 1:nrow(sub.df))
