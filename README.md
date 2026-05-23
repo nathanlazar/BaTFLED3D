@@ -21,6 +21,7 @@ Installation
 -----------
 
 ```
-install.packages('BaTFLED3D_0.1.13.tar.gz', repos = NULL, type="source")
+install.packages(c('foreach', 'R6', 'iterators', 'rTensor', 'RColorBrewer'))
+install.packages('BaTFLED3D_0.2.10.tar.gz', repos = NULL, type="source")
 library(BaTFLED3D)
 ```
