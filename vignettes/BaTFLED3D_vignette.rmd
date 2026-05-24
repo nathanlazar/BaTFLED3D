@@ -145,10 +145,10 @@ if(model.params$decomp=='Tucker')
   im_mat(model$core.mean[,,1], main='Core mean', xlab='mode 2 latent', ylab='Mode 1 latent')
 ```
 
-We're now ready to train the BaTFLED model. If `params$plot=TRUE` the predictions and some of the learned matrices will be displayed during training. You can adjust which A and H matrices are displayed by changing `params$show.mode`. The observed response values for the 'warm' data are set to zero, so they appear along a vertical line in the first plot. You may want to adjust the number of `cores` depending on how many processors you have on your machine and the number of iterations run `reps`. With 50 iterations a Tucker decomposition can take about 10-15 minutes.
+We're now ready to train the BaTFLED model. If `params$plot=TRUE` the predictions and some of the learned matrices will be displayed during training. You can adjust which A and H matrices are displayed by changing `params$show.mode`. The observed response values for the 'warm' data are set to zero, so they appear along a vertical line in the first plot. You may want to adjust the number of `cores` depending on how many processors you have on your machine and the number of iterations run `reps`. With 50 iterations a Tucker decomposition can take about 1-2 minutes.
 
 ```{r train model, message=F, warning=F, results='hide', fig.show='hide'}
-reps <- 5
+reps <- 50
 
 # Data frame to store RMSEs & explained variances for test data while training 
 test.results <- numeric(0)
